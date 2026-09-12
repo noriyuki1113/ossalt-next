@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
-import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Github, Menu, Search, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Clock3, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -52,12 +52,29 @@ function TrustMark({ item }: { item: DirectoryItem }) {
   return <Badge className={verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : ""}><CheckCircle2 size={12}/>{verified ? "確認済み" : "要確認"}</Badge>;
 }
 
+function relativeDate(value: string | null) {
+  if (!value) return "更新日不明";
+  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+  if (days === 0) return "今日更新";
+  if (days === 1) return "昨日更新";
+  if (days < 30) return `${days}日前`;
+  if (days < 365) return `${Math.floor(days / 30)}か月前`;
+  return `${Math.floor(days / 365)}年前`;
+}
+
+function ProjectMark({ name }: { name: string }) {
+  return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{name.slice(0, 2).toUpperCase()}</div>;
+}
+
 function DirectoryCard({ item }: { item: DirectoryItem }) {
   return (
     <Card className="group flex h-full flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
-          <div><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400">{item.product_name} の代替</p><h3 className="mt-1 text-2xl font-bold tracking-tight">{item.project_name}</h3></div>
+          <div className="flex items-start gap-3">
+            <ProjectMark name={item.project_name}/>
+            <div><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400">{item.product_name} の代替</p><h3 className="mt-1 text-2xl font-bold tracking-tight">{item.project_name}</h3></div>
+          </div>
           <TrustMark item={item}/>
         </div>
       </CardHeader>
@@ -71,7 +88,11 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
         <div className="mt-4 flex flex-wrap gap-2">
           {item.category && <Badge>{item.category}</Badge>}
           {item.primary_language && <Badge>{item.primary_language}</Badge>}
-          {item.stars_count != null && <Badge>★ {item.stars_count.toLocaleString()}</Badge>}
+        </div>
+        <div className="mt-4 flex items-center gap-4 text-[11px] text-zinc-500">
+          {item.stars_count != null && <span className="inline-flex items-center gap-1"><Star size={12}/>{item.stars_count.toLocaleString()}</span>}
+          <span className="inline-flex items-center gap-1"><Clock3 size={12}/>{relativeDate(item.last_commit_at)}</span>
+          {item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 && <span className="inline-flex items-center gap-1 text-emerald-600"><Activity size={12}/>Active</span>}
         </div>
       </CardContent>
       <CardFooter className="gap-2 border-t border-zinc-100 pt-4">
@@ -87,15 +108,27 @@ function HomePage() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("すべて");
   const [selfHostOnly, setSelfHostOnly] = useState(false);
+  const [collection, setCollection] = useState<"all" | "latest" | "active" | "easy">("all");
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   const categories = useMemo(() => ["すべて", ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[])).slice(0, 9)], [items]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(item => {
       const text = [item.product_name,item.project_name,item.category,item.license_spdx].filter(Boolean).join(" ").toLowerCase();
-      return (!q || text.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available);
+      const matchesCollection =
+        collection === "all" ||
+        (collection === "easy" && (item.migration_difficulty ?? 9) <= 2) ||
+        (collection === "active" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45) ||
+        (collection === "latest" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*120);
+      return (!q || text.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available) && matchesCollection;
     });
-  }, [items, query, category, selfHostOnly]);
+  }, [items, query, category, selfHostOnly, collection]);
+
+  useEffect(() => { setPage(1); }, [query, category, selfHostOnly, collection]);
+  const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
+  const pagedItems = visible.slice((page - 1) * pageSize, page * pageSize);
 
   const stats = {
     products: new Set(items.map(i => i.product_slug)).size,
@@ -129,7 +162,16 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="collections" className="border-y border-zinc-200 bg-white">
+      <section className="border-y border-zinc-200 bg-zinc-950 text-white">
+        <div className="mx-auto max-w-7xl px-5 py-7 lg:px-8">
+          <p className="text-xs font-medium text-zinc-400">よく比較されるSaaS</p>
+          <div className="mt-4 flex flex-wrap gap-x-7 gap-y-3">
+            {["Notion","Slack","Zapier","Firebase","Google Analytics","Salesforce","Jira","Mailchimp"].map(name => <button key={name} onClick={() => {setQuery(name); document.getElementById("directory")?.scrollIntoView();}} className="text-sm font-semibold text-zinc-200 transition hover:text-violet-300">{name} <span className="text-zinc-600">→</span></button>)}
+          </div>
+        </div>
+      </section>
+
+      <section id="collections" className="border-b border-zinc-200 bg-white">
         <div className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Collections</p><h2 className="mt-2 text-3xl font-bold tracking-tight">目的から探す</h2></div>
@@ -137,9 +179,9 @@ function HomePage() {
           </div>
           <div className="mt-7 grid gap-3 md:grid-cols-3">
             {[
-              ["セルフホストできる","自社環境で運用したい人向け",() => setSelfHostOnly(true)],
-              ["移行しやすい","難易度の低い候補から検討",() => {setSelfHostOnly(false);setCategory("すべて");}],
-              ["開発者向け","BaaS・API・AI開発系",() => setCategory("BaaS")],
+              ["セルフホスト","自社環境で運用できる候補",() => {setSelfHostOnly(true);setCollection("all");}],
+              ["最近更新","最近コミットのあるOSS",() => {setSelfHostOnly(false);setCollection("latest");}],
+              ["活発に開発中","45日以内に更新された候補",() => {setSelfHostOnly(false);setCollection("active");}],
             ].map(([title,body,action]) => <button key={title as string} onClick={action as () => void} className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-left transition hover:border-violet-300 hover:bg-violet-50/40">
               <h3 className="text-lg font-bold">{title as string}</h3><p className="mt-2 text-sm text-zinc-500">{body as string}</p><ArrowUpRight className="mt-8 text-zinc-400 transition group-hover:text-violet-600" size={18}/>
             </button>)}
@@ -150,12 +192,20 @@ function HomePage() {
       <section id="directory" className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
           <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Directory</p><h2 className="mt-2 text-4xl font-bold tracking-tight">OSS代替候補</h2><p className="mt-2 text-sm text-zinc-500">{visible.length} 件を表示中</p></div>
-          <div className="flex max-w-4xl flex-wrap gap-2">
-            {categories.map(name => <Button key={name} size="sm" variant={category === name ? "default" : "outline"} onClick={() => setCategory(name)}>{name}</Button>)}
-            <Button size="sm" variant={selfHostOnly ? "soft" : "outline"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={13}/> セルフホストのみ</Button>
+          <div className="flex max-w-4xl flex-col gap-2 xl:items-end">
+            <div className="flex flex-wrap gap-2">
+              {(["all","latest","active","easy"] as const).map(key => <Button key={key} size="sm" variant={collection === key ? "default" : "outline"} onClick={() => setCollection(key)}>{key === "all" ? "すべて" : key === "latest" ? "最近更新" : key === "active" ? "Active" : "移行しやすい"}</Button>)}
+              <Button size="sm" variant={selfHostOnly ? "soft" : "outline"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={13}/> セルフホスト</Button>
+            </div>
+            <div className="flex flex-wrap gap-2">{categories.map(name => <Button key={name} size="sm" variant={category === name ? "soft" : "ghost"} onClick={() => setCategory(name)}>{name}</Button>)}</div>
           </div>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visible.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{pagedItems.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+        {pageCount > 1 && <div className="mt-10 flex items-center justify-center gap-3">
+          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1,p-1))}>前へ</Button>
+          <span className="text-xs text-zinc-500">{page} / {pageCount}</span>
+          <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(p => Math.min(pageCount,p+1))}>次へ</Button>
+        </div>}
       </section>
 
       <section id="method" className="bg-zinc-950 text-white">
