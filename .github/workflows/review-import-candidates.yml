@@ -1,0 +1,83 @@
+name: Review imported candidates
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Review action
+        required: true
+        type: choice
+        options:
+          - queue
+          - approve
+          - reject
+        default: queue
+      candidate_id:
+        description: Candidate UUID (required for approve/reject)
+        required: false
+        type: string
+      product_slug:
+        description: Existing SaaS product slug (approve)
+        required: false
+        type: string
+      project_slug:
+        description: OSS project slug, lowercase kebab-case (approve)
+        required: false
+        type: string
+      official_url:
+        description: Verified official https URL (approve)
+        required: false
+        type: string
+      repository_url:
+        description: Verified official repository https URL (approve)
+        required: false
+        type: string
+      license_spdx:
+        description: SPDX license identifier if verified (approve)
+        required: false
+        type: string
+      short_description_ja:
+        description: Reviewed Japanese short description (approve)
+        required: false
+        type: string
+      migration_summary_ja:
+        description: Reviewed Japanese migration note (approve)
+        required: false
+        type: string
+      migration_difficulty:
+        description: Migration difficulty 1-5 (approve)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm install
+
+      - name: Review candidate
+        run: npm run review:candidate
+        env:
+          SUPABASE_URL: https://acakchddmmuylifrgkbv.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          REVIEW_OPERATION: ${{ inputs.operation }}
+          CANDIDATE_ID: ${{ inputs.candidate_id }}
+          PRODUCT_SLUG: ${{ inputs.product_slug }}
+          PROJECT_SLUG: ${{ inputs.project_slug }}
+          OFFICIAL_URL: ${{ inputs.official_url }}
+          REPOSITORY_URL: ${{ inputs.repository_url }}
+          LICENSE_SPDX: ${{ inputs.license_spdx }}
+          SHORT_DESCRIPTION_JA: ${{ inputs.short_description_ja }}
+          MIGRATION_SUMMARY_JA: ${{ inputs.migration_summary_ja }}
+          MIGRATION_DIFFICULTY: ${{ inputs.migration_difficulty }}
+          REVIEWER: ${{ github.actor }}
