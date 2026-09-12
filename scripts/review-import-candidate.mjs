@@ -1,4 +1,4 @@
-import { appendFile } from "node:fs/promises";
+import { appendFile, readFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
 
 const requiredBase = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
@@ -88,6 +88,127 @@ async function queue() {
   await writeSummary(
     `## Pending candidate review queue\n\nShowing the oldest ${data.length} pending candidates.\n\n| Candidate ID | Name | Category | Description | Source |\n|---|---|---|---|---|\n${rows}\n`,
   );
+}
+
+
+async function promoteBatch() {
+  const batchUrl = new URL("../data/reviewed-candidates.json", import.meta.url);
+  const payload = JSON.parse(await readFile(batchUrl, "utf8"));
+  const now = new Date().toISOString();
+  const results = [];
+
+  for (const record of payload.records || []) {
+    const { data: candidate, error: candidateError } = await withRetry(
+      "Load candidate",
+      () => supabase.from("import_candidates").select("*").eq("id", record.candidate_id).single(),
+    );
+    if (candidateError) throw candidateError;
+    if (!candidate) throw new Error(\`Candidate not found: \${record.candidate_id}\`);
+    if (candidate.import_state === "rejected") throw new Error(\`Candidate is rejected: \${record.candidate_id}\`);
+
+    assertSlug(record.product.slug, "product.slug");
+    assertSlug(record.project.slug, "project.slug");
+    assertHttps(record.product.website_url, "product.website_url");
+    assertHttps(record.project.official_url, "project.official_url");
+    assertHttps(record.project.repository_url, "project.repository_url");
+
+    const { data: product, error: productError } = await withRetry(
+      "Upsert product",
+      () => supabase
+        .from("products")
+        .upsert({
+          slug: record.product.slug,
+          name: record.product.name,
+          category: record.product.category,
+          description_ja: record.product.description_ja,
+          website_url: record.product.website_url,
+          publication_state: "published",
+          source_checked_at: now,
+        }, { onConflict: "slug" })
+        .select("id,slug,name")
+        .single(),
+    );
+    if (productError) throw productError;
+
+    const { data: project, error: projectError } = await withRetry(
+      "Upsert project",
+      () => supabase
+        .from("projects")
+        .upsert({
+          slug: record.project.slug,
+          name: record.project.name,
+          category: record.project.category,
+          short_description_ja: record.project.short_description_ja,
+          official_url: record.project.official_url,
+          repository_url: record.project.repository_url,
+          license_spdx: record.project.license_spdx || null,
+          publication_state: "published",
+          verification_state: "verified",
+          verified_at: now,
+          verified_by: reviewer,
+          source_checked_at: now,
+        }, { onConflict: "slug" })
+        .select("id,slug,name")
+        .single(),
+    );
+    if (projectError) throw projectError;
+
+    const { data: relation, error: relationError } = await withRetry(
+      "Upsert relation",
+      () => supabase
+        .from("alternative_relations")
+        .upsert({
+          product_id: product.id,
+          project_id: project.id,
+          relation_state: "verified",
+          migration_difficulty: record.relation.migration_difficulty,
+          migration_summary_ja: record.relation.migration_summary_ja,
+          strengths_ja: record.relation.strengths_ja || [],
+          constraints_ja: record.relation.constraints_ja || [],
+          source_checked_at: now,
+        }, { onConflict: "product_id,project_id" })
+        .select("id")
+        .single(),
+    );
+    if (relationError) throw relationError;
+
+    const evidence = [
+      { project_id: project.id, kind: "official_site", label: \`\${project.name} 公式サイト\`, url: record.project.official_url, note_ja: "公開前レビューで確認" },
+      { project_id: project.id, kind: "official_repository", label: \`\${project.name} GitHub\`, url: record.project.repository_url, note_ja: "公開前レビューで確認" },
+    ];
+    for (const item of evidence) {
+      const { data: existing } = await withRetry(
+        "Find evidence",
+        () => supabase.from("evidence_sources").select("id").eq("project_id", project.id).eq("kind", item.kind).eq("url", item.url).maybeSingle(),
+      );
+      if (!existing) {
+        const { error: evidenceError } = await withRetry("Insert evidence", () => supabase.from("evidence_sources").insert(item));
+        if (evidenceError) throw evidenceError;
+      }
+    }
+
+    const { error: candidateUpdateError } = await withRetry(
+      "Mark candidate enriched",
+      () => supabase
+        .from("import_candidates")
+        .update({
+          import_state: "enriched",
+          reviewed_at: now,
+          reviewed_by: reviewer,
+          project_id: project.id,
+        })
+        .eq("id", candidate.id),
+    );
+    if (candidateUpdateError) throw candidateUpdateError;
+
+    results.push({ product, project, relation_id: relation.id, candidate_id: candidate.id });
+    console.log(\`Published \${project.name} as an alternative for \${product.name}\`);
+  }
+
+  const lines = results.map((item) =>
+    \`- **\${item.project.name}** → alternative for **\${item.product.name}** (candidate \\\`\${item.candidate_id}\\\`)\`
+  ).join("\\n");
+  await writeSummary(\`## Reviewed batch promoted\\n\\n\${lines}\\n\`);
 }
 
 async function reject() {
@@ -223,5 +344,6 @@ async function approve() {
 
 if (operation === "queue") await queue();
 else if (operation === "approve") await approve();
+else if (operation === "batch") await promoteBatch();
 else if (operation === "reject") await reject();
 else throw new Error(`Unknown REVIEW_OPERATION: ${operation}`);
