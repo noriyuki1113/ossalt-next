@@ -160,6 +160,454 @@
           "本番運用ではモデルAPI・認証・監視・インフラ設計が必要"
         ]
       }
+    },
+    {
+      "source_slug": "activepieces",
+      "product": {
+        "slug": "zapier",
+        "name": "Zapier",
+        "category": "自動化",
+        "description_ja": "複数のアプリやサービスを接続し、トリガーとアクションで業務フローを自動化するサービス。",
+        "website_url": "https://zapier.com/"
+      },
+      "project": {
+        "slug": "activepieces",
+        "name": "Activepieces",
+        "category": "自動化",
+        "short_description_ja": "ノーコードで多数のサービスを連携し、セルフホストもできるワークフロー自動化プラットフォーム。",
+        "official_url": "https://www.activepieces.com/",
+        "repository_url": "https://github.com/activepieces/activepieces",
+        "license_spdx": "MIT"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Zapierから移行する場合は、利用中のZapを一覧化し、トリガー・認証・分岐・再試行をActivepiecesのフローとして順に再構築してください。",
+        "strengths_ja": [
+          "MITライセンス",
+          "セルフホスト可能",
+          "ノーコードのワークフロー自動化"
+        ],
+        "constraints_ja": [
+          "Zapier固有のコネクタは同等機能を個別確認",
+          "既存フローの自動変換ではなく再構築が基本"
+        ]
+      }
+    },
+    {
+      "source_slug": "cal-com",
+      "product": {
+        "slug": "calendly",
+        "name": "Calendly",
+        "category": "スケジューリング",
+        "description_ja": "予約ページを通じて日程調整やミーティング予約を自動化するサービス。",
+        "website_url": "https://calendly.com/"
+      },
+      "project": {
+        "slug": "cal-com",
+        "name": "Cal.com",
+        "category": "スケジューリング",
+        "short_description_ja": "予約ページ、チームスケジュール、ルーティングなどを提供するセルフホスト対応のスケジューリング基盤。",
+        "official_url": "https://cal.com/",
+        "repository_url": "https://github.com/calcom/cal.com",
+        "license_spdx": null
+      },
+      "relation": {
+        "migration_difficulty": 2,
+        "migration_summary_ja": "Calendlyから移行する場合は、イベント種別、接続カレンダー、通知、チーム割り当て、決済連携を順に再設定してください。",
+        "strengths_ja": [
+          "セルフホスト可能",
+          "予約ページとチームスケジューリングに対応",
+          "API連携が可能"
+        ],
+        "constraints_ja": [
+          "ライセンス条件は導入形態ごとに公式情報を確認",
+          "外部カレンダー・決済連携は再設定が必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "formbricks",
+      "product": {
+        "slug": "typeform",
+        "name": "Typeform",
+        "category": "フォーム・アンケート",
+        "description_ja": "対話型フォームやアンケートを作成し、回答を収集・分析するサービス。",
+        "website_url": "https://www.typeform.com/"
+      },
+      "project": {
+        "slug": "formbricks",
+        "name": "Formbricks",
+        "category": "フォーム・アンケート",
+        "short_description_ja": "アンケート、プロダクト内調査、顧客フィードバックを扱えるプライバシー重視のセルフホスト対応プラットフォーム。",
+        "official_url": "https://formbricks.com/",
+        "repository_url": "https://github.com/formbricks/formbricks",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Typeformから移行する場合は、質問分岐、回答項目、埋め込み、通知、分析用途を整理してフォーム単位で再構築してください。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "プロダクト内アンケートにも対応"
+        ],
+        "constraints_ja": [
+          "Typeform固有のデザイン・連携は再現性を確認",
+          "既存回答データの移行方法を要確認"
+        ]
+      }
+    },
+    {
+      "source_slug": "twenty",
+      "product": {
+        "slug": "salesforce",
+        "name": "Salesforce",
+        "category": "CRM",
+        "description_ja": "営業、顧客管理、ワークフロー、レポートを統合するクラウドCRMプラットフォーム。",
+        "website_url": "https://www.salesforce.com/"
+      },
+      "project": {
+        "slug": "twenty",
+        "name": "Twenty",
+        "category": "CRM",
+        "short_description_ja": "顧客、商談、企業情報を管理し、カスタマイズ可能なセルフホスト型CRM。",
+        "official_url": "https://twenty.com/",
+        "repository_url": "https://github.com/twentyhq/twenty",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Salesforceから移行する場合は、オブジェクト、項目、権限、商談プロセス、レポート、外部連携を棚卸しし、小規模チームから段階移行してください。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "柔軟なデータモデル"
+        ],
+        "constraints_ja": [
+          "Salesforceの高度な自動化やAppExchange連携は代替可否を個別確認",
+          "大規模移行ではデータクレンジングと権限設計が必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "plane",
+      "product": {
+        "slug": "jira",
+        "name": "Jira",
+        "category": "プロジェクト管理",
+        "description_ja": "課題、スプリント、ワークフロー、レポートを管理する開発チーム向けプロジェクト管理サービス。",
+        "website_url": "https://www.atlassian.com/software/jira"
+      },
+      "project": {
+        "slug": "plane",
+        "name": "Plane",
+        "category": "プロジェクト管理",
+        "short_description_ja": "Issues、Cycles、Modules、Viewsなどを備えたセルフホスト対応のプロジェクト管理プラットフォーム。",
+        "official_url": "https://plane.so/",
+        "repository_url": "https://github.com/makeplane/plane",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Jiraから移行する場合は、プロジェクト、Issue、ステータス、スプリント、ラベル、担当者を整理し、主要ワークフローから再構成してください。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "Issue・Cycle・Moduleを統合"
+        ],
+        "constraints_ja": [
+          "Jira固有の自動化やMarketplaceアプリは代替要否を確認",
+          "複雑なカスタムフィールドは設計し直す可能性がある"
+        ]
+      }
+    },
+    {
+      "source_slug": "umami",
+      "product": {
+        "slug": "google-analytics",
+        "name": "Google Analytics",
+        "category": "分析",
+        "description_ja": "ウェブサイトやプロダクトの利用状況を分析するサービス。",
+        "website_url": "https://analytics.google.com/"
+      },
+      "project": {
+        "slug": "umami",
+        "name": "Umami",
+        "category": "分析",
+        "short_description_ja": "軽量でプライバシー重視のセルフホスト対応ウェブ解析ツール。",
+        "official_url": "https://umami.is/",
+        "repository_url": "https://github.com/umami-software/umami",
+        "license_spdx": "MIT"
+      },
+      "relation": {
+        "migration_difficulty": 2,
+        "migration_summary_ja": "Google Analyticsから移行する場合は、主要KPIとイベント計測を絞り込み、ページビューとカスタムイベントをUmami側で再定義してください。",
+        "strengths_ja": [
+          "MITライセンス",
+          "セルフホスト可能",
+          "シンプルで軽量"
+        ],
+        "constraints_ja": [
+          "GA4の高度な広告・アトリビューション機能とは用途が異なる",
+          "過去データの完全移行は期待しない方がよい"
+        ]
+      }
+    },
+    {
+      "source_slug": "plausible",
+      "product": {
+        "slug": "google-analytics",
+        "name": "Google Analytics",
+        "category": "分析",
+        "description_ja": "ウェブサイトやプロダクトの利用状況を分析するサービス。",
+        "website_url": "https://analytics.google.com/"
+      },
+      "project": {
+        "slug": "plausible",
+        "name": "Plausible",
+        "category": "分析",
+        "short_description_ja": "プライバシー重視で軽量なウェブ解析を提供する、セルフホスト可能なオープンソース分析ツール。",
+        "official_url": "https://plausible.io/",
+        "repository_url": "https://github.com/plausible/analytics",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 2,
+        "migration_summary_ja": "Google Analyticsから移行する場合は、必要な指標とイベントだけを整理し、シンプルな計測設計に置き換えるのが適しています。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "プライバシー重視の軽量計測"
+        ],
+        "constraints_ja": [
+          "GA4の詳細な広告・ユーザー分析機能は代替しない",
+          "既存の高度なレポートは再設計が必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "supabase",
+      "product": {
+        "slug": "firebase",
+        "name": "Firebase",
+        "category": "BaaS",
+        "description_ja": "認証、データベース、ストレージ、ホスティングなどを提供するGoogleのアプリ開発バックエンドサービス。",
+        "website_url": "https://firebase.google.com/"
+      },
+      "project": {
+        "slug": "supabase",
+        "name": "Supabase",
+        "category": "BaaS",
+        "short_description_ja": "PostgreSQLを中心に認証、ストレージ、リアルタイム、Edge Functionsなどを提供するオープンソースBaaS。",
+        "official_url": "https://supabase.com/",
+        "repository_url": "https://github.com/supabase/supabase",
+        "license_spdx": "Apache-2.0"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Firebaseから移行する場合は、Firestore/Realtime Databaseのデータモデル、Auth、Storage、FunctionsをPostgreSQL中心の設計へ段階的に置き換えてください。",
+        "strengths_ja": [
+          "Apache-2.0",
+          "PostgreSQLベース",
+          "認証・ストレージ・リアルタイムを統合"
+        ],
+        "constraints_ja": [
+          "NoSQLからSQLへのデータモデル変更が必要になる場合が多い",
+          "Firebase固有SDKやFunctionsは書き換えが必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "appwrite",
+      "product": {
+        "slug": "firebase",
+        "name": "Firebase",
+        "category": "BaaS",
+        "description_ja": "認証、データベース、ストレージ、ホスティングなどを提供するGoogleのアプリ開発バックエンドサービス。",
+        "website_url": "https://firebase.google.com/"
+      },
+      "project": {
+        "slug": "appwrite",
+        "name": "Appwrite",
+        "category": "BaaS",
+        "short_description_ja": "認証、データベース、ストレージ、Functions、Realtimeなどを提供するセルフホスト対応BaaS。",
+        "official_url": "https://appwrite.io/",
+        "repository_url": "https://github.com/appwrite/appwrite",
+        "license_spdx": "BSD-3-Clause"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Firebaseから移行する場合は、Auth、Database、Storage、Functionsの対応関係を整理し、機能単位で移行してください。",
+        "strengths_ja": [
+          "BSD-3-Clause",
+          "セルフホスト可能",
+          "主要BaaS機能を一体提供"
+        ],
+        "constraints_ja": [
+          "Firebase固有APIとの互換性はない",
+          "データモデルとクライアントSDKの書き換えが必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "immich",
+      "product": {
+        "slug": "google-photos",
+        "name": "Google Photos",
+        "category": "写真管理",
+        "description_ja": "写真や動画のバックアップ、検索、共有を提供するクラウド写真管理サービス。",
+        "website_url": "https://photos.google.com/"
+      },
+      "project": {
+        "slug": "immich",
+        "name": "Immich",
+        "category": "写真管理",
+        "short_description_ja": "写真と動画を自分のサーバーへバックアップし、タイムライン、検索、共有を利用できるセルフホスト型写真管理サービス。",
+        "official_url": "https://immich.app/",
+        "repository_url": "https://github.com/immich-app/immich",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Google Photosから移行する場合は、Google Takeoutでデータをエクスポートし、メタデータ、アルバム、容量、バックアップ方式を確認して段階的に取り込んでください。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "写真・動画の自動バックアップと検索"
+        ],
+        "constraints_ja": [
+          "ストレージ容量とバックアップ運用を自分で管理",
+          "Google Photos固有の編集・共有機能は同等でない場合がある"
+        ]
+      }
+    },
+    {
+      "source_slug": "jellyfin",
+      "product": {
+        "slug": "plex",
+        "name": "Plex",
+        "category": "メディアサーバー",
+        "description_ja": "自宅やサーバー上の動画・音楽を整理し、各デバイスへ配信するメディアサービス。",
+        "website_url": "https://www.plex.tv/"
+      },
+      "project": {
+        "slug": "jellyfin",
+        "name": "Jellyfin",
+        "category": "メディアサーバー",
+        "short_description_ja": "映画、テレビ、音楽などを自分のサーバーから配信できるオープンソースのメディアサーバー。",
+        "official_url": "https://jellyfin.org/",
+        "repository_url": "https://github.com/jellyfin/jellyfin",
+        "license_spdx": "GPL-2.0"
+      },
+      "relation": {
+        "migration_difficulty": 2,
+        "migration_summary_ja": "Plexから移行する場合は、同じメディアライブラリをJellyfinへ登録し、メタデータ、ユーザー、リモートアクセス、トランスコード設定を確認してください。",
+        "strengths_ja": [
+          "GPL-2.0",
+          "セルフホスト",
+          "主要クライアントを提供"
+        ],
+        "constraints_ja": [
+          "外部アクセスやトランスコードはネットワーク・GPU構成の確認が必要",
+          "Plex固有のクラウド機能は代替されない"
+        ]
+      }
+    },
+    {
+      "source_slug": "metabase",
+      "product": {
+        "slug": "tableau",
+        "name": "Tableau",
+        "category": "BI",
+        "description_ja": "データ可視化、ダッシュボード、分析を提供するBIプラットフォーム。",
+        "website_url": "https://www.tableau.com/"
+      },
+      "project": {
+        "slug": "metabase",
+        "name": "Metabase",
+        "category": "BI",
+        "short_description_ja": "SQLを書かずに質問やダッシュボードを作成でき、セルフホストも可能なBI・データ可視化ツール。",
+        "official_url": "https://www.metabase.com/",
+        "repository_url": "https://github.com/metabase/metabase",
+        "license_spdx": null
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Tableauから移行する場合は、利用中のデータソース、ダッシュボード、計算項目、権限を整理し、重要レポートからMetabaseで再構築してください。",
+        "strengths_ja": [
+          "セルフホスト可能",
+          "ノーコード分析とSQLの両方に対応",
+          "導入が比較的容易"
+        ],
+        "constraints_ja": [
+          "Tableauの高度な可視化やデータ準備機能とは差がある",
+          "複雑なワークブックは手作業で再構築が必要"
+        ]
+      }
+    },
+    {
+      "source_slug": "listmonk",
+      "product": {
+        "slug": "mailchimp",
+        "name": "Mailchimp",
+        "category": "メール配信",
+        "description_ja": "ニュースレター、メールマーケティング、オーディエンス管理を提供するサービス。",
+        "website_url": "https://mailchimp.com/"
+      },
+      "project": {
+        "slug": "listmonk",
+        "name": "Listmonk",
+        "category": "メール配信",
+        "short_description_ja": "大量配信、リスト管理、テンプレート、分析を提供する高速なセルフホスト型ニュースレター配信ツール。",
+        "official_url": "https://listmonk.app/",
+        "repository_url": "https://github.com/knadh/listmonk",
+        "license_spdx": "AGPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "Mailchimpから移行する場合は、購読者、セグメント、配信停止状態、テンプレート、送信ドメインを整理し、配信基盤と合わせて移行してください。",
+        "strengths_ja": [
+          "AGPL-3.0",
+          "セルフホスト可能",
+          "大規模配信に向く"
+        ],
+        "constraints_ja": [
+          "SMTPや配信サービスを別途用意する必要がある",
+          "Mailchimpのマーケティング自動化機能は限定的"
+        ]
+      }
+    },
+    {
+      "source_slug": "mautic",
+      "product": {
+        "slug": "hubspot",
+        "name": "HubSpot",
+        "category": "マーケティング",
+        "description_ja": "CRM、メール、フォーム、マーケティング自動化などを統合するクラウドプラットフォーム。",
+        "website_url": "https://www.hubspot.com/"
+      },
+      "project": {
+        "slug": "mautic",
+        "name": "Mautic",
+        "category": "マーケティング",
+        "short_description_ja": "コンタクト管理、メール、フォーム、キャンペーン自動化を提供するセルフホスト対応マーケティングオートメーション基盤。",
+        "official_url": "https://www.mautic.org/",
+        "repository_url": "https://github.com/mautic/mautic",
+        "license_spdx": "GPL-3.0"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "HubSpotから移行する場合は、コンタクト、フォーム、メール、スコアリング、キャンペーン、外部連携を棚卸しし、マーケティング領域から段階的に移行してください。",
+        "strengths_ja": [
+          "GPL-3.0",
+          "セルフホスト可能",
+          "キャンペーン自動化とコンタクト管理"
+        ],
+        "constraints_ja": [
+          "HubSpotの営業・サービス領域まで一括代替する製品ではない",
+          "メール配信基盤・運用監視を自分で用意する必要がある"
+        ]
+      }
     }
   ]
 }
