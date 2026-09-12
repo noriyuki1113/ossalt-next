@@ -1,149 +1,83 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  CheckCircle2,
-  Github,
-  Menu,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Github, Menu, Search, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import { supabase } from "./lib/supabase";
 import { fallbackItems } from "./lib/fallback-data";
 import type { DirectoryItem } from "./lib/types";
-
-const popularServices = ["Notion", "Slack", "Figma", "Zapier", "Google Analytics", "Firebase"];
-const journeys = [
-  { number: "01", title: "サービス名で探す", body: "いま使っているSaaSを入力すると、公開済みのOSS代替候補だけを表示します。" },
-  { number: "02", title: "移行コストを見る", body: "ライセンス、運用負担、セルフホスト可否、移行難易度を同じ形式で比較できます。" },
-  { number: "03", title: "公式情報で確かめる", body: "公式サイトとGitHubへの導線を用意。最終判断は一次情報までたどれます。" },
-];
 
 function useDirectoryItems() {
   const [items, setItems] = useState<DirectoryItem[]>(fallbackItems);
   useEffect(() => {
     if (!supabase) return;
-    supabase
-      .from("published_alternative_directory")
-      .select("*")
-      .order("product_name")
-      .then(({ data, error }) => {
-        if (!error && data && data.length > 0) setItems(data as DirectoryItem[]);
-      });
+    supabase.from("published_alternative_directory").select("*").order("product_name").then(({ data, error }) => {
+      if (!error && data?.length) setItems(data as DirectoryItem[]);
+    });
   }, []);
   return items;
 }
 
 function Header() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   return (
     <header className="site-header">
-      <Link className="brand" to="/" aria-label="ossalt home">
-        <span className="brand-mark">O</span><span>ossalt</span>
-      </Link>
-      <nav className={menuOpen ? "nav nav-open" : "nav"}>
+      <Link className="brand" to="/"><span className="brand-mark">O</span><span>ossalt</span></Link>
+      <nav className={open ? "nav nav-open" : "nav"}>
         <a href="/#directory">代替候補</a>
+        <a href="/#collections">コレクション</a>
         <a href="/#method">選び方</a>
-        <a href="/#trust">信頼方針</a>
-        <a className="nav-github" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">
-          <Github size={14} /> GitHub
-        </a>
+        <a href="/#policy">信頼方針</a>
+        <a className="nav-github" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>
       </nav>
-      <button className="menu" onClick={() => setMenuOpen((open) => !open)} aria-label="メニュー">
-        {menuOpen ? <X /> : <Menu />}
-      </button>
+      <button className="menu" onClick={() => setOpen(v => !v)} aria-label="メニュー">{open ? <X/> : <Menu/>}</button>
     </header>
   );
 }
 
 function Footer() {
   return (
-    <footer id="trust">
-      <div>
-        <Link className="brand" to="/"><span className="brand-mark">O</span><span>ossalt</span></Link>
-        <p>SaaSからOSSへの移行を、日本語で探し、比べ、判断するためのディレクトリ。</p>
-      </div>
-      <div className="footer-note">
-        <p>掲載候補は公式情報を確認し、レビュー済みのものだけを公開します。スポンサー掲載は通常の比較順位から分離します。</p>
-        <a href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">
-          データと実装を見る <ArrowUpRight size={14} />
-        </a>
-      </div>
+    <footer id="policy">
+      <div><Link className="brand" to="/"><span className="brand-mark">O</span><span>ossalt</span></Link><p>SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div>
+      <div><p>掲載候補は公式情報を確認し、レビュー済みのものだけを公開。スポンサー掲載と通常順位は分離します。</p><a href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">レビュー基盤を見る <ArrowUpRight size={14}/></a></div>
     </footer>
   );
 }
 
 function TrustMark({ item }: { item: DirectoryItem }) {
   const verified = item.verification_state === "verified";
-  return (
-    <span className={verified ? "trust trust-verified" : "trust"}>
-      <CheckCircle2 size={13} /> {verified ? "確認済み" : "要確認"}
-    </span>
-  );
+  return <span className={verified ? "trust verified" : "trust"}><CheckCircle2 size={13}/>{verified ? "確認済み" : "要確認"}</span>;
 }
 
 function Difficulty({ value }: { value: number | null }) {
-  if (!value) return null;
-  return (
-    <div className="difficulty" aria-label={`移行難易度 ${value}/5`}>
-      <span>移行難易度</span>
-      <div className="difficulty-bars">
-        {[1, 2, 3, 4, 5].map((n) => <i key={n} className={n <= value ? "on" : ""} />)}
-      </div>
-      <b>{value}/5</b>
-    </div>
-  );
+  if (!value) return <span className="metric-value">—</span>;
+  return <span className="metric-value">{value}/5</span>;
 }
 
-function ToolCard({ item }: { item: DirectoryItem }) {
+function CompactCard({ item }: { item: DirectoryItem }) {
   return (
-    <article className="tool-card">
-      <div className="card-meta">
-        <span className="product-chip">{item.product_name}</span>
-        <TrustMark item={item} />
-      </div>
-      <div className="card-title-row">
+    <article className="directory-card">
+      <div className="card-head">
         <div>
-          <p className="replaces">OPEN SOURCE ALTERNATIVE</p>
+          <div className="card-overline">{item.product_name} の代替</div>
           <h3>{item.project_name}</h3>
         </div>
-        <span className="arrow-badge"><ArrowUpRight size={17} /></span>
+        <TrustMark item={item}/>
       </div>
-      <p className="description">{item.short_description_ja}</p>
-      <div className="facts">
-        {item.license_spdx && <span>{item.license_spdx}</span>}
-        {item.docker_available && <span>Self-host</span>}
+      <p className="card-description">{item.short_description_ja}</p>
+      <div className="card-metrics">
+        <div><span>移行難易度</span><Difficulty value={item.migration_difficulty}/></div>
+        <div><span>ライセンス</span><strong>{item.license_spdx || "要確認"}</strong></div>
+        <div><span>セルフホスト</span><strong>{item.docker_available ? "対応" : "要確認"}</strong></div>
+      </div>
+      <div className="card-tags">
         {item.category && <span>{item.category}</span>}
+        {item.primary_language && <span>{item.primary_language}</span>}
+        {item.stars_count != null && <span>★ {item.stars_count.toLocaleString()}</span>}
       </div>
-      <Difficulty value={item.migration_difficulty} />
-      <div className="card-links">
-        <Link className="primary-link" to={`/alternatives/${item.product_slug}`}>
-          比較を見る <ArrowRight size={14} />
-        </Link>
-        {item.repository_url && <a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14} /> Repository</a>}
+      <div className="card-actions">
+        <Link className="primary-action" to={`/alternatives/${item.product_slug}`}>比較を見る <ArrowRight size={14}/></Link>
+        {item.repository_url && <a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>}
       </div>
     </article>
-  );
-}
-
-function FeaturedPair({ item, index }: { item: DirectoryItem; index: number }) {
-  return (
-    <Link className={`feature-pair feature-${index + 1}`} to={`/alternatives/${item.product_slug}`}>
-      <div className="pair-label">POPULAR PAIR</div>
-      <div className="pair-names">
-        <span>{item.product_name}</span><ArrowRight size={18} /><strong>{item.project_name}</strong>
-      </div>
-      <p>{item.short_description_ja}</p>
-      <div className="pair-footer">
-        <span>{item.license_spdx || "License check"}</span>
-        <span>詳しく見る <ArrowUpRight size={13} /></span>
-      </div>
-    </Link>
   );
 }
 
@@ -151,112 +85,75 @@ function HomePage() {
   const items = useDirectoryItems();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("すべて");
+  const [selfHostOnly, setSelfHostOnly] = useState(false);
 
-  const categories = useMemo(
-    () => ["すべて", ...Array.from(new Set(items.map((item) => item.category).filter(Boolean) as string[])).slice(0, 8)],
-    [items],
-  );
+  const categories = useMemo(() => ["すべて", ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[])).slice(0, 10)], [items]);
+  const services = useMemo(() => Array.from(new Set(items.map(i => i.product_name))).slice(0, 8), [items]);
 
-  const visibleItems = useMemo(() => {
-    const keyword = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const text = [item.product_name, item.product_name_ja, item.project_name, item.project_name_ja, item.category]
-        .filter(Boolean).join(" ").toLowerCase();
-      const matchesQuery = !keyword || text.includes(keyword);
-      const matchesCategory = category === "すべて" || item.category === category;
-      return matchesQuery && matchesCategory;
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter(item => {
+      const haystack = [item.product_name, item.project_name, item.category, item.license_spdx].filter(Boolean).join(" ").toLowerCase();
+      return (!q || haystack.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available);
     });
-  }, [items, query, category]);
+  }, [items, query, category, selfHostOnly]);
 
-  const stats = useMemo(() => ({
-    products: new Set(items.map((item) => item.product_slug)).size,
-    projects: new Set(items.map((item) => item.project_slug)).size,
-    verified: items.filter((item) => item.verification_state === "verified").length,
-  }), [items]);
+  const stats = {
+    products: new Set(items.map(i => i.product_slug)).size,
+    projects: new Set(items.map(i => i.project_slug)).size,
+    verified: items.filter(i => i.verification_state === "verified").length,
+  };
 
-  const featured = items.slice(0, 3);
+  const collectionCards = [
+    { title: "セルフホストできる", count: items.filter(i => i.docker_available).length, text: "自社環境で運用したい人向け", action: () => setSelfHostOnly(true) },
+    { title: "移行しやすい", count: items.filter(i => (i.migration_difficulty ?? 9) <= 2).length, text: "難易度2以下の候補", action: () => { setSelfHostOnly(false); setCategory("すべて"); } },
+    { title: "開発者向け", count: items.filter(i => ["開発","API開発","BaaS","AIエージェント開発"].includes(i.category || "")).length, text: "開発系カテゴリを中心に", action: () => setCategory("開発") },
+  ];
 
   return (
     <>
       <section className="hero">
-        <div className="hero-badge"><Sparkles size={14} /> 日本語のOSS移行ディレクトリ</div>
-        <h1>SaaSをやめる前に、<br /><em>選択肢を知ろう。</em></h1>
-        <p className="hero-copy">
-          Notion、Slack、Zapier、Firebase。<br className="desktop-break" />
-          いつものSaaSに代わるOSSを、移行の現実まで含めて比較します。
-        </p>
-
-        <label className="searchbox">
-          <Search size={20} />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="例：Notion、Slack、Firebase"
-          />
-          <span className="search-hint">⌘ K</span>
-        </label>
-
-        <div className="chips">
-          <span>人気:</span>
-          {popularServices.map((name) => <button key={name} onClick={() => setQuery(name)}>{name}</button>)}
+        <div className="hero-copy-wrap">
+          <span className="hero-eyebrow">OPEN SOURCE ALTERNATIVES, FOR JAPAN</span>
+          <h1>いつものSaaSに、<br/><em>もうひとつの選択肢を。</em></h1>
+          <p>SaaS名からOSS代替候補を探し、ライセンス・運用負担・移行難易度まで比較できます。</p>
         </div>
-
+        <div className="hero-search-wrap">
+          <label className="searchbox"><Search size={20}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Notion、Slack、Firebase..." /></label>
+          <div className="popular-row"><span>人気の検索</span>{services.slice(0,6).map(name => <button key={name} onClick={() => setQuery(name)}>{name}</button>)}</div>
+        </div>
         <div className="hero-stats">
           <div><strong>{stats.products}</strong><span>SaaS</span></div>
           <div><strong>{stats.projects}</strong><span>OSS候補</span></div>
-          <div><strong>{stats.verified}</strong><span>レビュー済み関係</span></div>
+          <div><strong>{stats.verified}</strong><span>レビュー済み</span></div>
         </div>
       </section>
 
-      <section className="feature-showcase">
-        <div className="section-intro">
-          <div><span className="section-kicker">CURATED PICKS</span><h2>まずは、よく使われる組み合わせから。</h2></div>
-          <p>「OSSだから良い」ではなく、実際に置き換え候補として検討しやすい組み合わせを掲載しています。</p>
-        </div>
-        <div className="feature-grid">{featured.map((item, index) => <FeaturedPair key={item.relation_id} item={item} index={index} />)}</div>
-      </section>
-
-      <section className="method" id="method">
-        <div className="section-intro method-heading">
-          <div><span className="section-kicker">HOW OSSALT WORKS</span><h2>検索サイトではなく、<br />移行判断のための場所。</h2></div>
-          <div className="principle"><ShieldCheck size={18} /><span>一次情報を確認してから公開</span></div>
-        </div>
-        <div className="journey-grid">
-          {journeys.map((journey) => (
-            <article key={journey.number}>
-              <span className="step-number">{journey.number}</span>
-              <h3>{journey.title}</h3>
-              <p>{journey.body}</p>
-            </article>
-          ))}
+      <section className="collection-strip" id="collections">
+        <div className="section-header"><div><span>COLLECTIONS</span><h2>目的から探す</h2></div><p>サービス名が決まっていなくても、運用方針から候補を見つけられます。</p></div>
+        <div className="collection-grid">
+          {collectionCards.map(card => <button key={card.title} onClick={card.action}><span>{card.count} projects</span><h3>{card.title}</h3><p>{card.text}</p><ArrowUpRight size={17}/></button>)}
         </div>
       </section>
 
       <section className="directory" id="directory">
-        <div className="section-intro directory-heading">
-          <div><span className="section-kicker">DIRECTORY</span><h2>OSS代替候補を探す</h2></div>
-          <p>{visibleItems.length} 件を表示中</p>
+        <div className="directory-toolbar">
+          <div><span className="section-label">DIRECTORY</span><h2>OSS代替候補</h2><p>{visible.length} 件を表示中</p></div>
+          <div className="filter-controls">
+            <div className="filter-pills">{categories.map(name => <button className={category === name ? "active" : ""} onClick={() => setCategory(name)} key={name}>{name}</button>)}</div>
+            <button className={selfHostOnly ? "selfhost-toggle active" : "selfhost-toggle"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={14}/> セルフホストのみ</button>
+          </div>
         </div>
-        <div className="filter-row">
-          {categories.map((name) => (
-            <button key={name} className={category === name ? "filter active" : "filter"} onClick={() => setCategory(name)}>{name}</button>
-          ))}
-        </div>
-        <div className="cards">{visibleItems.map((item) => <ToolCard item={item} key={item.relation_id} />)}</div>
-        {visibleItems.length === 0 && <div className="empty-state"><Search size={24} /><h3>候補が見つかりません</h3><p>サービス名を短くするか、カテゴリを「すべて」に戻してください。</p></div>}
+        <div className="cards">{visible.map(item => <CompactCard item={item} key={item.relation_id}/>)}</div>
+        {visible.length === 0 && <div className="empty-state"><Search size={24}/><h3>候補が見つかりません</h3><p>検索語やフィルターを変えてみてください。</p></div>}
       </section>
 
-      <section className="editorial">
-        <div className="editorial-copy">
-          <span className="section-kicker">EDITORIAL POLICY</span>
-          <h2>「オープンソース」だけでは、<br />掲載理由になりません。</h2>
-          <p>公式リポジトリ、ライセンス、移行先としての妥当性を確認し、レビューを通過した候補だけを公開します。</p>
-          <a href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">レビューの仕組みを見る <ArrowUpRight size={14} /></a>
-        </div>
-        <div className="editorial-list">
-          {["公式サイト・リポジトリを確認", "ライセンス条件を記録", "移行難易度を5段階で整理", "スポンサーと通常順位を分離"].map((text) => (
-            <div key={text}><span><Check size={15} /></span>{text}</div>
-          ))}
+      <section className="method" id="method">
+        <div className="section-header light"><div><span>OSSALT METHOD</span><h2>「OSSだから」ではなく、<br/>移行できるかで選ぶ。</h2></div><p>発見よりも意思決定。ossaltは、乗り換えた後に困らないための情報を優先します。</p></div>
+        <div className="method-grid">
+          <article><span>01</span><h3>移行難易度</h3><p>データ移行、設定再構築、運用変更の大きさを5段階で整理。</p></article>
+          <article><span>02</span><h3>失うもの</h3><p>既存SaaS固有の機能や連携で、代替できない可能性を明記。</p></article>
+          <article><span>03</span><h3>運用責任</h3><p>セルフホスト時に必要な監視、更新、バックアップまで含めて判断。</p></article>
         </div>
       </section>
     </>
@@ -266,53 +163,50 @@ function HomePage() {
 function AlternativesPage() {
   const { slug } = useParams();
   const items = useDirectoryItems();
-  const candidates = items.filter((item) => item.product_slug === slug);
+  const candidates = items.filter(i => i.product_slug === slug);
   const productName = candidates[0]?.product_name;
-
-  if (!productName) return (
-    <section className="not-found">
-      <p className="section-kicker">NOT FOUND</p><h1>この比較ページは準備中です。</h1><Link to="/">トップへ戻る</Link>
-    </section>
-  );
+  if (!productName) return <section className="not-found"><p>この比較ページは準備中です。</p><Link to="/">トップへ戻る</Link></section>;
 
   return (
     <section className="alternatives-page">
-      <div className="breadcrumb"><Link to="/"><ArrowLeft size={14} /> トップ</Link><span>/</span><span>{productName}</span></div>
+      <div className="breadcrumb"><Link to="/"><ArrowLeft size={14}/> トップ</Link><span>/</span><span>{productName}</span></div>
       <div className="comparison-hero">
-        <span className="section-kicker">OSS ALTERNATIVES</span>
-        <h1>{productName} の<br />代替OSS</h1>
-        <p>{productName}を置き換えるときに見るべき、ライセンス・運用・移行難易度を候補ごとに整理しました。</p>
-        <div className="comparison-meta"><span>{candidates.length} candidates</span><span><ShieldCheck size={14} /> reviewed data</span></div>
+        <span className="section-label">{productName} ALTERNATIVES</span>
+        <h1>{productName} の代替OSS</h1>
+        <p>候補ごとに、移行難易度・ライセンス・向いているケース・注意点を整理しています。</p>
+        <div className="comparison-meta"><span>{candidates.length} candidates</span><span><ShieldCheck size={14}/> reviewed</span></div>
       </div>
-
+      <div className="comparison-table">
+        <div className="comparison-table-head"><span>候補</span><span>移行難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
+        {candidates.map(item => <div className="comparison-row" key={item.relation_id}>
+          <div><strong>{item.project_name}</strong><small>{item.short_description_ja}</small></div>
+          <Difficulty value={item.migration_difficulty}/>
+          <span>{item.license_spdx || "要確認"}</span>
+          <span>{item.docker_available ? "対応" : "要確認"}</span>
+        </div>)}
+      </div>
       <div className="candidate-stack">
-        {candidates.map((item, index) => (
-          <article key={item.relation_id} className="candidate-detail">
-            <div className="candidate-index">0{index + 1}</div>
-            <div className="candidate-main">
-              <div className="candidate-head"><div><TrustMark item={item} /><h2>{item.project_name}</h2><p>{item.short_description_ja}</p></div><Difficulty value={item.migration_difficulty} /></div>
-              <div className="detail-grid">
-                <div><h3>向いている点</h3><ul>{item.strengths_ja?.map((strength) => <li key={strength}><Check size={13} />{strength}</li>)}</ul></div>
-                <div><h3>注意点</h3><ul>{item.constraints_ja?.map((constraint) => <li key={constraint}><span>!</span>{constraint}</li>)}</ul></div>
-              </div>
-              <div className="migration-note"><span>移行メモ</span><p>{item.migration_summary_ja}</p></div>
-              <div className="candidate-actions">
-                {item.official_url && <a className="button button-primary" href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={14} /></a>}
-                {item.repository_url && <a className="button" href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14} /> GitHub</a>}
-                {item.license_spdx && <span className="license-label">{item.license_spdx}</span>}
-              </div>
+        {candidates.map((item,index) => <article className="candidate-detail" key={item.relation_id}>
+          <div className="candidate-number">0{index+1}</div>
+          <div className="candidate-body">
+            <div className="candidate-head"><div><TrustMark item={item}/><h2>{item.project_name}</h2><p>{item.short_description_ja}</p></div></div>
+            <div className="detail-grid">
+              <div><h3>向いているケース</h3><ul>{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div>
+              <div><h3>確認が必要な点</h3><ul>{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div>
             </div>
-          </article>
-        ))}
+            <div className="migration-note"><span>移行メモ</span><p>{item.migration_summary_ja}</p></div>
+            <div className="candidate-actions">
+              {item.official_url && <a className="button primary" href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={14}/></a>}
+              {item.repository_url && <a className="button" href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>}
+            </div>
+          </div>
+        </article>)}
       </div>
     </section>
   );
 }
 
 function Site() {
-  return <div className="app-shell"><Header /><main><Routes><Route path="/" element={<HomePage />} /><Route path="/alternatives/:slug" element={<AlternativesPage />} /><Route path="*" element={<Navigate to="/" replace />} /></Routes></main><Footer /></div>;
+  return <div className="app-shell"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
 }
-
-export function App() {
-  return <BrowserRouter><Site /></BrowserRouter>;
-}
+export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
