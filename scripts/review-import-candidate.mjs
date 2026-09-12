@@ -206,9 +206,9 @@ async function promoteBatch() {
   }
 
   const lines = results.map((item) =>
-    `- **${item.project.name}** → alternative for **${item.product.name}** (candidate \\`${item.candidate_id}\\`)`
-  ).join("\\n");
-  await writeSummary(`## Reviewed batch promoted\\n\\n${lines}\\n`);
+    `- **${item.project.name}** → alternative for **${item.product.name}** (candidate ${item.candidate_id})`
+  ).join("\n");
+  await writeSummary(`## Reviewed batch promoted\n\n${lines}\n`);
 }
 
 async function reject() {
