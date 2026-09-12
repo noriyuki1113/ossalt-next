@@ -22,6 +22,9 @@ export type DirectoryItem = {
   strengths_ja: string[];
   constraints_ja: string[];
   stars_count: number | null;
+  forks_count: number | null;
+  open_issues_count: number | null;
+  owner_avatar_url: string | null;
   last_commit_at: string | null;
   snapshot_observed_at: string | null;
 };
