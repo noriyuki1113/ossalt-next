@@ -82,7 +82,7 @@ async function queue() {
   const rows = data.map((row) => {
     const category = Array.isArray(row.category_path) ? row.category_path.join(" / ") : "";
     const description = (row.description || "").replace(/\|/g, "\\|").slice(0, 140);
-    return `| `${row.id}` | ${row.name.replace(/\|/g, "\\|")} | ${category.replace(/\|/g, "\\|")} | ${description} | [source](${row.source_url}) |`;
+    return `| \`${row.id}\` | ${row.name.replace(/\|/g, "\\|")} | ${category.replace(/\|/g, "\\|")} | ${description} | [source](${row.source_url}) |`;
   }).join("\n");
 
   await writeSummary(
