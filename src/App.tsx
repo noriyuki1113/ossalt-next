@@ -32,8 +32,8 @@ function Header() {
           <span className="text-lg">ossalt</span>
         </Link>
         <nav className="hidden items-center gap-7 text-sm text-zinc-600 md:flex">
-          <a className="hover:text-zinc-950" href="/#directory">代替候補</a>
-          <a className="hover:text-zinc-950" href="/#collections">コレクション</a>
+          <Link className="hover:text-zinc-950" to="/categories">カテゴリ</Link>
+          <Link className="hover:text-zinc-950" to="/collections">コレクション</Link>
           <a className="hover:text-zinc-950" href="/#method">選び方</a>
           <a className="inline-flex items-center gap-1.5 hover:text-zinc-950" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer"><Github size={15}/> GitHub</a>
         </nav>
@@ -41,7 +41,7 @@ function Header() {
       </div>
       {open && <div className="border-t border-zinc-200 bg-white px-5 py-4 md:hidden">
         <div className="flex flex-col gap-4 text-sm text-zinc-700">
-          <a href="/#directory">代替候補</a><a href="/#collections">コレクション</a><a href="/#method">選び方</a>
+          <Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link><a href="/#method">選び方</a>
         </div>
       </div>}
     </header>
@@ -234,6 +234,93 @@ function HomePage() {
   );
 }
 
+function DiscoveryCard({ title, description, count, to }: { title: string; description: string; count: number; to: string }) {
+  return <Link to={to} className="group rounded-2xl border border-zinc-200 bg-white p-5 transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/40">
+    <p className="text-xs font-medium uppercase tracking-[.12em] text-zinc-400">{count} projects</p>
+    <div className="mt-7 flex items-end justify-between gap-4">
+      <div><h3 className="text-xl font-bold tracking-tight">{title}</h3><p className="mt-2 text-sm leading-6 text-zinc-500">{description}</p></div>
+      <ArrowUpRight size={18} className="shrink-0 text-zinc-400 transition group-hover:text-violet-600"/>
+    </div>
+  </Link>;
+}
+
+function CategoriesPage() {
+  const items = useDirectoryItems();
+  const groups = Array.from(new Map(
+    items.filter(i => i.category).map(i => [i.category!, items.filter(x => x.category === i.category)])
+  ).entries()).sort((a,b) => b[1].length - a[1].length);
+
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Badge className="border-violet-200 bg-violet-50 text-violet-700">BROWSE BY CATEGORY</Badge>
+    <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_.7fr] lg:items-end">
+      <h1 className="text-5xl font-extrabold tracking-[-.055em] lg:text-6xl">カテゴリから<br/>OSSを探す。</h1>
+      <p className="text-sm leading-7 text-zinc-500">用途が決まっているなら、SaaS名よりカテゴリから探す方が早いことがあります。公開済みの候補だけを表示します。</p>
+    </div>
+    <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+      {groups.map(([category, rows]) => <DiscoveryCard key={category} title={category} description={`${category}領域のOSS候補を比較`} count={rows.length} to={`/categories/${encodeURIComponent(category)}`}/>)}
+    </div>
+  </section>;
+}
+
+function CategoryPage() {
+  const { slug } = useParams();
+  const items = useDirectoryItems();
+  const category = decodeURIComponent(slug || "");
+  const rows = items.filter(i => i.category === category);
+
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/categories"><ArrowLeft size={14}/> カテゴリ一覧</Link>
+    <div className="mt-8 border-b border-zinc-200 pb-8">
+      <Badge>{rows.length} PROJECTS</Badge>
+      <h1 className="mt-4 text-5xl font-extrabold tracking-[-.055em]">{category}</h1>
+      <p className="mt-4 text-sm leading-7 text-zinc-500">このカテゴリで公開・レビュー済みのOSS候補です。</p>
+    </div>
+    <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+  </section>;
+}
+
+const collectionDefinitions = {
+  "self-hosted": { title: "セルフホスト", description: "自社環境で運用できるOSS", test: (i: DirectoryItem) => !!i.docker_available },
+  active: { title: "活発に開発中", description: "45日以内にコミットが確認できるOSS", test: (i: DirectoryItem) => !!i.last_commit_at && Date.now() - new Date(i.last_commit_at).getTime() < 1000*60*60*24*45 },
+  latest: { title: "最近更新", description: "120日以内に更新が確認できるOSS", test: (i: DirectoryItem) => !!i.last_commit_at && Date.now() - new Date(i.last_commit_at).getTime() < 1000*60*60*24*120 },
+  easy: { title: "移行しやすい", description: "移行難易度2以下の候補", test: (i: DirectoryItem) => (i.migration_difficulty ?? 9) <= 2 },
+} as const;
+
+function CollectionsPage() {
+  const items = useDirectoryItems();
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Badge className="border-violet-200 bg-violet-50 text-violet-700">CURATED COLLECTIONS</Badge>
+    <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_.7fr] lg:items-end">
+      <h1 className="text-5xl font-extrabold tracking-[-.055em] lg:text-6xl">条件から<br/>OSSを探す。</h1>
+      <p className="text-sm leading-7 text-zinc-500">運用方針や移行のしやすさから候補を絞れます。ossalt独自の「移行判断」軸です。</p>
+    </div>
+    <div className="mt-10 grid gap-3 md:grid-cols-2">
+      {Object.entries(collectionDefinitions).map(([key, def]) => {
+        const count = items.filter(def.test).length;
+        return <DiscoveryCard key={key} title={def.title} description={def.description} count={count} to={`/collections/${key}`}/>;
+      })}
+    </div>
+  </section>;
+}
+
+function CollectionPage() {
+  const { key } = useParams();
+  const items = useDirectoryItems();
+  const def = key ? collectionDefinitions[key as keyof typeof collectionDefinitions] : undefined;
+  if (!def) return <Navigate to="/collections" replace/>;
+  const rows = items.filter(def.test);
+
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/collections"><ArrowLeft size={14}/> コレクション一覧</Link>
+    <div className="mt-8 border-b border-zinc-200 pb-8">
+      <Badge>{rows.length} PROJECTS</Badge>
+      <h1 className="mt-4 text-5xl font-extrabold tracking-[-.055em]">{def.title}</h1>
+      <p className="mt-4 text-sm leading-7 text-zinc-500">{def.description}</p>
+    </div>
+    <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+  </section>;
+}
+
 function ScoreRow({ label, value }: { label: string; value: number }) {
   return <div>
     <div className="flex items-center justify-between text-sm"><span className="text-zinc-600">{label}</span><span className="font-semibold">{value}/5</span></div>
@@ -384,6 +471,6 @@ function Footer() {
 }
 
 function Site() {
-  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
 }
 export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
