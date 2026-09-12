@@ -35,7 +35,11 @@ select
   snapshot.observed_at as snapshot_observed_at,
   snapshot.forks_count,
   snapshot.open_issues_count,
-  snapshot.raw_payload ->> 'owner_avatar_url' as owner_avatar_url
+  snapshot.raw_payload ->> 'owner_avatar_url' as owner_avatar_url,
+  snapshot.raw_payload ->> 'repository_created_at' as repository_created_at,
+  snapshot.raw_payload ->> 'latest_release_tag' as latest_release_tag,
+  snapshot.raw_payload ->> 'latest_release_published_at' as latest_release_published_at,
+  snapshot.raw_payload -> 'topics' as topics
 from public.alternative_relations relation
 join public.products product on product.id = relation.product_id
 join public.projects project on project.id = relation.project_id
