@@ -64,6 +64,13 @@ for (const project of projects ?? []) {
   try {
     const metadata = await github(`/repos/${repo.owner}/${repo.repo}`);
     let lastCommitAt = metadata.pushed_at ?? null;
+    let latestRelease = null;
+
+    try {
+      latestRelease = await github(`/repos/${repo.owner}/${repo.repo}/releases/latest`);
+    } catch {
+      latestRelease = null;
+    }
 
     try {
       const commits = await github(`/repos/${repo.owner}/${repo.repo}/commits?per_page=1`);
@@ -88,6 +95,13 @@ for (const project of projects ?? []) {
         updated_at: metadata.updated_at ?? null,
         owner_avatar_url: metadata.owner?.avatar_url ?? null,
         homepage: metadata.homepage ?? null,
+        repository_created_at: metadata.created_at ?? null,
+        repository_updated_at: metadata.updated_at ?? null,
+        watchers_count: metadata.subscribers_count ?? metadata.watchers_count ?? null,
+        topics: metadata.topics ?? [],
+        latest_release_tag: latestRelease?.tag_name ?? null,
+        latest_release_name: latestRelease?.name ?? null,
+        latest_release_published_at: latestRelease?.published_at ?? null,
       },
     });
 
