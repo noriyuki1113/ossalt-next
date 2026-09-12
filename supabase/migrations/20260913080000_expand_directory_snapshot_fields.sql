@@ -1,4 +1,8 @@
-create or replace view public.published_alternative_directory
+begin;
+
+drop view if exists public.published_alternative_directory;
+
+create view public.published_alternative_directory
 with (security_invoker = true) as
 select
   relation.id as relation_id,
@@ -45,3 +49,7 @@ left join lateral (
 where product.publication_state = 'published'
   and project.publication_state = 'published'
   and relation.relation_state = 'verified';
+
+grant select on public.published_alternative_directory to anon, authenticated;
+
+commit;
