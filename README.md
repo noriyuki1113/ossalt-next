@@ -35,6 +35,12 @@ supabase link --project-ref acakchddmmuylifrgkbv
 supabase db push
 ```
 
+初期表示用の確認済みデータも投入する場合は、続けて以下をSQL Editorで実行します。
+
+```
+supabase/migrations/20260912071000_seed_reviewed_records.sql
+```
+
 ## 次の工程
 
 1. 新Supabaseに初期のSaaS製品・OSSプロジェクト・根拠URLを投入
