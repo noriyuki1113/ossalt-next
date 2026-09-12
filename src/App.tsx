@@ -321,6 +321,13 @@ function CollectionPage() {
   </section>;
 }
 
+function repositoryAge(value?: string | null) {
+  if (!value) return "要確認";
+  const years = Math.max(0, (Date.now() - new Date(value).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+  if (years < 1) return `${Math.max(1, Math.round(years * 12))}か月`;
+  return `${years.toFixed(1)}年`;
+}
+
 function ScoreRow({ label, value }: { label: string; value: number }) {
   return <div>
     <div className="flex items-center justify-between text-sm"><span className="text-zinc-600">{label}</span><span className="font-semibold">{value}/5</span></div>
@@ -339,6 +346,11 @@ function ProjectPage() {
 
   const operational = profile?.operations ?? { setup: 3, updates: 3, backups: 3, monitoring: 3 };
   const relatedProducts = Array.from(new Map(relations.map(r => [r.product_slug, r])).values());
+  const similarProjects = items
+    .filter(i => i.project_slug !== item.project_slug && i.category === item.category)
+    .filter((row, index, all) => all.findIndex(x => x.project_slug === row.project_slug) === index)
+    .sort((a,b) => (b.stars_count ?? 0) - (a.stars_count ?? 0))
+    .slice(0, 3);
 
   return (
     <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8 lg:py-16">
@@ -361,12 +373,13 @@ function ProjectPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Card><CardContent><p className="text-xs text-zinc-400">Stars</p><p className="mt-2 text-2xl font-bold">{item.stars_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Forks</p><p className="mt-2 text-2xl font-bold">{item.forks_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Open issues</p><p className="mt-2 text-2xl font-bold">{item.open_issues_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Last commit</p><p className="mt-2 text-lg font-bold">{relativeDate(item.last_commit_at)}</p></CardContent></Card>
-        <Card><CardContent><p className="text-xs text-zinc-400">License</p><p className="mt-2 text-lg font-bold">{item.license_spdx || "要確認"}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Repository age</p><p className="mt-2 text-lg font-bold">{repositoryAge(item.repository_created_at)}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Latest release</p><p className="mt-2 truncate text-lg font-bold">{item.latest_release_tag || "要確認"}</p></CardContent></Card>
       </div>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
@@ -380,7 +393,10 @@ function ProjectPage() {
             <div className="flex justify-between gap-4"><span className="text-zinc-500">主要言語</span><b>{item.primary_language || "要確認"}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">セルフホスト</span><b>{item.docker_available ? "対応" : "要確認"}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">ライセンス</span><b>{item.license_spdx || "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">Repository age</span><b>{repositoryAge(item.repository_created_at)}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">最新リリース</span><b>{item.latest_release_tag || "要確認"}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">開発状況</span><b className={item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 ? "text-emerald-600" : ""}>{item.last_commit_at ? relativeDate(item.last_commit_at) : "要確認"}</b></div>
+            {item.topics?.length ? <div className="pt-2"><span className="text-zinc-500">Topics</span><div className="mt-2 flex flex-wrap gap-2">{item.topics.slice(0,8).map(topic => <Badge key={topic}>{topic}</Badge>)}</div></div> : null}
           </CardContent>
         </Card>
       </div>
@@ -423,6 +439,11 @@ function ProjectPage() {
           </Link>)}
         </div>
       </div>
+
+      {similarProjects.length > 0 && <div className="mt-12 border-t border-zinc-200 pt-10">
+        <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Similar projects</p><h2 className="mt-2 text-3xl font-bold">似ているOSS</h2><p className="mt-2 text-sm text-zinc-500">同じカテゴリで比較されやすい候補です。</p></div>
+        <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{similarProjects.map(project => <DirectoryCard key={project.relation_id} item={project}/>)}</div>
+      </div>}
     </section>
   );
 }
