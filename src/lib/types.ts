@@ -1,0 +1,27 @@
+export type DirectoryItem = {
+  relation_id: string;
+  product_slug: string;
+  product_name: string;
+  product_name_ja: string | null;
+  project_id: string;
+  project_slug: string;
+  project_name: string;
+  project_name_ja: string | null;
+  short_description_ja: string | null;
+  category: string | null;
+  official_url: string | null;
+  repository_url: string | null;
+  license_spdx: string | null;
+  primary_language: string | null;
+  docker_available: boolean | null;
+  verification_state: "unverified" | "reviewing" | "verified" | "needs_review";
+  verified_at: string | null;
+  source_checked_at: string | null;
+  migration_difficulty: number | null;
+  migration_summary_ja: string | null;
+  strengths_ja: string[];
+  constraints_ja: string[];
+  stars_count: number | null;
+  last_commit_at: string | null;
+  snapshot_observed_at: string | null;
+};
