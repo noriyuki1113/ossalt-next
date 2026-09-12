@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/lib/supabase";
 import { fallbackItems } from "@/lib/fallback-data";
 import { productGuides } from "@/lib/product-guides";
+import { projectProfiles } from "@/lib/project-profiles";
 import type { DirectoryItem } from "@/lib/types";
 
 function useDirectoryItems() {
@@ -103,7 +104,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
         </div>
       </CardContent>
       <CardFooter className="gap-2 border-t border-zinc-100 pt-4">
-        <Button asChild size="sm"><Link to={`/alternatives/${item.product_slug}`}>比較を見る <ArrowRight size={13}/></Link></Button>
+        <Button asChild size="sm"><Link to={`/projects/${item.project_slug}`}>詳細を見る <ArrowRight size={13}/></Link></Button>
         {item.repository_url && <Button asChild size="sm" variant="ghost"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}
       </CardFooter>
     </Card>
@@ -228,6 +229,112 @@ function HomePage() {
   );
 }
 
+function ScoreRow({ label, value }: { label: string; value: number }) {
+  return <div>
+    <div className="flex items-center justify-between text-sm"><span className="text-zinc-600">{label}</span><span className="font-semibold">{value}/5</span></div>
+    <div className="mt-2 flex gap-1">{[1,2,3,4,5].map(i => <span key={i} className={`h-1.5 flex-1 rounded-full ${i <= value ? "bg-zinc-900" : "bg-zinc-200"}`}/>)}</div>
+  </div>;
+}
+
+function ProjectPage() {
+  const { slug } = useParams();
+  const items = useDirectoryItems();
+  const relations = items.filter(i => i.project_slug === slug);
+  const item = relations[0];
+  const profile = slug ? projectProfiles[slug] : undefined;
+
+  if (!item) return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p>このOSSページは準備中です。</p><Button asChild className="mt-5"><Link to="/">トップへ戻る</Link></Button></section>;
+
+  const operational = profile?.operations ?? { setup: 3, updates: 3, backups: 3, monitoring: 3 };
+  const relatedProducts = Array.from(new Map(relations.map(r => [r.product_slug, r])).values());
+
+  return (
+    <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8 lg:py-16">
+      <Link className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-950" to="/"><ArrowLeft size={14}/> ディレクトリへ</Link>
+
+      <div className="mt-9 grid gap-8 border-b border-zinc-200 pb-10 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <div className="flex items-start gap-4">
+            <ProjectMark item={item}/>
+            <div>
+              <div className="flex flex-wrap items-center gap-2"><Badge>{item.category || "OSS"}</Badge><TrustMark item={item}/></div>
+              <h1 className="mt-3 text-5xl font-extrabold tracking-[-0.055em] lg:text-7xl">{item.project_name}</h1>
+            </div>
+          </div>
+          <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-600">{profile?.summary || item.short_description_ja}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {item.official_url && <Button asChild><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={14}/></a></Button>}
+          {item.repository_url && <Button asChild variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a></Button>}
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card><CardContent><p className="text-xs text-zinc-400">Stars</p><p className="mt-2 text-2xl font-bold">{item.stars_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Forks</p><p className="mt-2 text-2xl font-bold">{item.forks_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Open issues</p><p className="mt-2 text-2xl font-bold">{item.open_issues_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Last commit</p><p className="mt-2 text-lg font-bold">{relativeDate(item.last_commit_at)}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">License</p><p className="mt-2 text-lg font-bold">{item.license_spdx || "要確認"}</p></CardContent></Card>
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Overview</p><h2 className="mt-2 text-3xl font-bold tracking-tight">このOSSについて</h2></CardHeader>
+          <CardContent><p className="text-sm leading-8 text-zinc-600">{profile?.overview || item.short_description_ja}</p></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Basics</p><h2 className="mt-2 text-2xl font-bold">基本情報</h2></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">主要言語</span><b>{item.primary_language || "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">セルフホスト</span><b>{item.docker_available ? "対応" : "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">ライセンス</span><b>{item.license_spdx || "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">開発状況</span><b className={item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 ? "text-emerald-600" : ""}>{item.last_commit_at ? relativeDate(item.last_commit_at) : "要確認"}</b></div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader><h2 className="text-2xl font-bold">向いているケース</h2></CardHeader>
+          <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{(profile?.bestFor || item.strengths_ja || []).map(x => <li key={x}>✓ {x}</li>)}</ul></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><h2 className="text-2xl font-bold">向いていないケース</h2></CardHeader>
+          <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{(profile?.avoidIf || item.constraints_ja || []).map(x => <li key={x}>! {x}</li>)}</ul></CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Operations</p><h2 className="mt-2 text-2xl font-bold">運用負担</h2></CardHeader>
+          <CardContent className="space-y-5">
+            <ScoreRow label="導入" value={operational.setup}/>
+            <ScoreRow label="アップデート" value={operational.updates}/>
+            <ScoreRow label="バックアップ" value={operational.backups}/>
+            <ScoreRow label="監視" value={operational.monitoring}/>
+            <p className="pt-2 text-sm leading-7 text-zinc-500">{profile?.operationsNote || "セルフホストする場合は、更新・バックアップ・監視を含めた運用設計が必要です。"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Deployment</p><h2 className="mt-2 text-2xl font-bold">導入時に確認すること</h2></CardHeader>
+          <CardContent>
+            <ol className="space-y-4">{(profile?.deployment || ["検証環境を用意する","データ移行方法を確認する","バックアップと更新手順を決める"]).map((step,index) => <li key={step} className="flex gap-4 text-sm leading-7 text-zinc-600"><span className="text-violet-600">{String(index+1).padStart(2,"0")}</span><span>{step}</span></li>)}</ol>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-10">
+        <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Alternative to</p><h2 className="mt-2 text-3xl font-bold">代替できるSaaS</h2></div></div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {relatedProducts.map(rel => <Link key={rel.product_slug} to={`/alternatives/${rel.product_slug}`} className="group rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-violet-300 hover:shadow-md">
+            <p className="text-xs text-zinc-400">Alternative to</p><div className="mt-2 flex items-center justify-between"><h3 className="text-lg font-bold">{rel.product_name}</h3><ArrowRight size={16} className="text-zinc-400 group-hover:text-violet-600"/></div><p className="mt-3 text-sm text-zinc-500">移行難易度 {rel.migration_difficulty ? `${rel.migration_difficulty}/5` : "要確認"}</p>
+          </Link>)}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function AlternativesPage() {
   const { slug } = useParams();
   const items = useDirectoryItems();
@@ -272,6 +379,6 @@ function Footer() {
 }
 
 function Site() {
-  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
 }
 export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
