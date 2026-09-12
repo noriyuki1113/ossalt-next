@@ -11,6 +11,7 @@ on:
           - queue
           - approve
           - reject
+          - batch
         default: queue
       candidate_id:
         description: Candidate UUID (required for approve/reject)
