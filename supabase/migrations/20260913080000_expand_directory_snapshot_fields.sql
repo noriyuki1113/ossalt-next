@@ -27,11 +27,11 @@ select
   relation.not_recommended_for_ja,
   relation.editorial_rank,
   snapshot.stars_count,
+  snapshot.last_commit_at,
+  snapshot.observed_at as snapshot_observed_at,
   snapshot.forks_count,
   snapshot.open_issues_count,
-  snapshot.last_commit_at,
-  snapshot.raw_payload ->> 'owner_avatar_url' as owner_avatar_url,
-  snapshot.observed_at as snapshot_observed_at
+  snapshot.raw_payload ->> 'owner_avatar_url' as owner_avatar_url
 from public.alternative_relations relation
 join public.products product on product.id = relation.product_id
 join public.projects project on project.id = relation.project_id
