@@ -44,15 +44,35 @@ async function writeSummary(markdown) {
   }
 }
 
-async function queue() {
-  const { data, error } = await supabase
-    .from("import_candidates")
-    .select("id,name,description,source_url,source_slug,category_path,license_hint,stars_hint,imported_at")
-    .eq("import_state", "pending")
-    .order("imported_at", { ascending: true })
-    .limit(30);
+async function withRetry(label, operation, attempts = 4) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const result = await operation();
+      if (!result?.error) return result;
+      lastError = result.error;
+    } catch (error) {
+      lastError = error;
+    }
 
-  if (error) throw error;
+    if (attempt < attempts) {
+      const delayMs = 1500 * attempt;
+      console.warn(`${label} failed on attempt ${attempt}/${attempts}; retrying in ${delayMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
+async function queue() {
+  const { data } = await withRetry("Load review queue", () =>
+    supabase
+      .from("import_candidates")
+      .select("id,name,description,source_url,source_slug,category_path,license_hint,stars_hint,imported_at")
+      .eq("import_state", "pending")
+      .order("imported_at", { ascending: true })
+      .limit(20),
+  );
 
   console.log(`Pending review candidates shown: ${data.length}`);
   for (const row of data) {
