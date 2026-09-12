@@ -18,5 +18,5 @@ jobs:
         run: |
           node --check scripts/import-openalternative-candidates.mjs
           node --check scripts/review-import-candidate.mjs
-    node --check scripts/sync-github-snapshots.mjs
+          node --check scripts/sync-github-snapshots.mjs
       - run: npm run build
