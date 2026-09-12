@@ -64,6 +64,70 @@
           "Zapier固有の連携や既存Zapは個別に再構築が必要"
         ]
       }
+    },
+    {
+      "candidate_id": "9c1cdcc3-9953-4258-bddf-e5e502e201b4",
+      "product": {
+        "slug": "microsoft-copilot-studio",
+        "name": "Microsoft Copilot Studio",
+        "category": "AIエージェント開発",
+        "description_ja": "自然言語やグラフィカルな編集でAIエージェントとワークフローを構築・公開するMicrosoftのサービス。",
+        "website_url": "https://www.microsoft.com/ja-jp/microsoft-copilot/microsoft-copilot-studio"
+      },
+      "project": {
+        "slug": "dify",
+        "name": "Dify",
+        "category": "AIエージェント開発",
+        "short_description_ja": "エージェント、RAG、ワークフロー、モデル管理をまとめて扱えるセルフホスト対応のLLMアプリ開発プラットフォーム。",
+        "official_url": "https://dify.ai/",
+        "repository_url": "https://github.com/langgenius/dify",
+        "license_spdx": null
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Copilot Studioから移行する場合は、既存エージェントの会話設計、接続先、認証、データソース、運用監視を分解し、Dify側で段階的に再構築してください。",
+        "strengths_ja": [
+          "セルフホスト可能",
+          "RAGとエージェントワークフローを統合",
+          "複数モデルを扱える"
+        ],
+        "constraints_ja": [
+          "Apache-2.0ベースだが追加条件のある独自ライセンス",
+          "Microsoft 365連携は同等にならないため個別設計が必要"
+        ]
+      }
+    },
+    {
+      "candidate_id": "2a45417e-aaae-44cf-a20c-e1f87e265f48",
+      "product": {
+        "slug": "microsoft-copilot-studio",
+        "name": "Microsoft Copilot Studio",
+        "category": "AIエージェント開発",
+        "description_ja": "自然言語やグラフィカルな編集でAIエージェントとワークフローを構築・公開するMicrosoftのサービス。",
+        "website_url": "https://www.microsoft.com/ja-jp/microsoft-copilot/microsoft-copilot-studio"
+      },
+      "project": {
+        "slug": "langflow",
+        "name": "Langflow",
+        "category": "AIエージェント開発",
+        "short_description_ja": "ドラッグ&ドロップでAIエージェント、RAGアプリ、MCPサーバーを構築・デプロイできるオープンソースのローコード開発ツール。",
+        "official_url": "https://www.langflow.org/",
+        "repository_url": "https://github.com/langflow-ai/langflow",
+        "license_spdx": "MIT"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Copilot Studioから移行する場合は、エージェントのロジック、外部ツール、認証、公開チャネルを整理し、Langflowのフローとして再設計する必要があります。",
+        "strengths_ja": [
+          "MITライセンス",
+          "主要LLMやベクターデータベースに対応",
+          "ローコードでエージェントやRAGを構築"
+        ],
+        "constraints_ja": [
+          "Microsoft 365固有の統合はそのまま移行できない",
+          "本番運用では認証・監視・スケーリング設計が必要"
+        ]
+      }
     }
   ]
 }
