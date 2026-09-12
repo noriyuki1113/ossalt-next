@@ -82,7 +82,7 @@ async function queue() {
   const rows = data.map((row) => {
     const category = Array.isArray(row.category_path) ? row.category_path.join(" / ") : "";
     const description = (row.description || "").replace(/\|/g, "\\|").slice(0, 140);
-    return `| \`${row.id}\` | ${row.name.replace(/\|/g, "\\|")} | ${category.replace(/\|/g, "\\|")} | ${description} | [source](${row.source_url}) |`;
+    return `| `${row.id}` | ${row.name.replace(/\|/g, "\\|")} | ${category.replace(/\|/g, "\\|")} | ${description} | [source](${row.source_url}) |`;
   }).join("\n");
 
   await writeSummary(
@@ -103,8 +103,8 @@ async function promoteBatch() {
       () => supabase.from("import_candidates").select("*").eq("id", record.candidate_id).single(),
     );
     if (candidateError) throw candidateError;
-    if (!candidate) throw new Error(\`Candidate not found: \${record.candidate_id}\`);
-    if (candidate.import_state === "rejected") throw new Error(\`Candidate is rejected: \${record.candidate_id}\`);
+    if (!candidate) throw new Error(`Candidate not found: ${record.candidate_id}`);
+    if (candidate.import_state === "rejected") throw new Error(`Candidate is rejected: ${record.candidate_id}`);
 
     assertSlug(record.product.slug, "product.slug");
     assertSlug(record.project.slug, "project.slug");
@@ -173,8 +173,8 @@ async function promoteBatch() {
     if (relationError) throw relationError;
 
     const evidence = [
-      { project_id: project.id, kind: "official_site", label: \`\${project.name} 公式サイト\`, url: record.project.official_url, note_ja: "公開前レビューで確認" },
-      { project_id: project.id, kind: "official_repository", label: \`\${project.name} GitHub\`, url: record.project.repository_url, note_ja: "公開前レビューで確認" },
+      { project_id: project.id, kind: "official_site", label: `${project.name} 公式サイト`, url: record.project.official_url, note_ja: "公開前レビューで確認" },
+      { project_id: project.id, kind: "official_repository", label: `${project.name} GitHub`, url: record.project.repository_url, note_ja: "公開前レビューで確認" },
     ];
     for (const item of evidence) {
       const { data: existing } = await withRetry(
@@ -202,13 +202,13 @@ async function promoteBatch() {
     if (candidateUpdateError) throw candidateUpdateError;
 
     results.push({ product, project, relation_id: relation.id, candidate_id: candidate.id });
-    console.log(\`Published \${project.name} as an alternative for \${product.name}\`);
+    console.log(`Published ${project.name} as an alternative for ${product.name}`);
   }
 
   const lines = results.map((item) =>
-    \`- **\${item.project.name}** → alternative for **\${item.product.name}** (candidate \\\`\${item.candidate_id}\\\`)\`
+    `- **${item.project.name}** → alternative for **${item.product.name}** (candidate \\`${item.candidate_id}\\`)`
   ).join("\\n");
-  await writeSummary(\`## Reviewed batch promoted\\n\\n\${lines}\\n\`);
+  await writeSummary(`## Reviewed batch promoted\\n\\n${lines}\\n`);
 }
 
 async function reject() {
@@ -226,7 +226,7 @@ async function reject() {
 
   if (error) throw error;
   console.log(`Rejected candidate: ${data.name} (${data.id})`);
-  await writeSummary(`## Candidate rejected\n\n- **Name:** ${data.name}\n- **Candidate ID:** \`${data.id}\`\n- **Reviewer:** ${reviewer}\n`);
+  await writeSummary(`## Candidate rejected\n\n- **Name:** ${data.name}\n- **Candidate ID:** `${data.id}`\n- **Reviewer:** ${reviewer}\n`);
 }
 
 async function approve() {
@@ -338,7 +338,7 @@ async function approve() {
 
   console.log(`Approved and published: ${candidate.name} as alternative for ${product.name}`);
   await writeSummary(
-    `## Candidate approved and published\n\n- **Project:** ${project.name} (\`${project.slug}\`)\n- **Alternative for:** ${product.name} (\`${product.slug}\`)\n- **Candidate ID:** \`${candidate.id}\`\n- **Relation ID:** \`${relation.id}\`\n- **Reviewer:** ${reviewer}\n- **Official URL:** ${officialUrl}\n- **Repository:** ${repositoryUrl}\n`,
+    `## Candidate approved and published\n\n- **Project:** ${project.name} (`${project.slug}`)\n- **Alternative for:** ${product.name} (`${product.slug}`)\n- **Candidate ID:** `${candidate.id}`\n- **Relation ID:** `${relation.id}`\n- **Reviewer:** ${reviewer}\n- **Official URL:** ${officialUrl}\n- **Repository:** ${repositoryUrl}\n`,
   );
 }
 
