@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "import:openalternative": "node scripts/import-openalternative-candidates.mjs"
+    "import:openalternative": "node scripts/import-openalternative-candidates.mjs",
+    "review:candidate": "node scripts/review-import-candidate.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
