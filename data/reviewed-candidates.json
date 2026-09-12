@@ -1,0 +1,69 @@
+{
+  "reviewed_at": "2026-09-12",
+  "records": [
+    {
+      "candidate_id": "643ac368-ba85-4375-8758-18ecfed1ec59",
+      "product": {
+        "slug": "chatgpt",
+        "name": "ChatGPT",
+        "category": "AIチャット",
+        "description_ja": "対話型AIアシスタントとして文章作成、調査、分析、コーディングなどを支援するサービス。",
+        "website_url": "https://chatgpt.com/"
+      },
+      "project": {
+        "slug": "librechat",
+        "name": "LibreChat",
+        "category": "AIチャット",
+        "short_description_ja": "複数のAIモデルを切り替えて利用できる、セルフホスト対応のオープンソースAIチャットUI。",
+        "official_url": "https://www.librechat.ai/",
+        "repository_url": "https://github.com/danny-avila/LibreChat",
+        "license_spdx": "MIT"
+      },
+      "relation": {
+        "migration_difficulty": 3,
+        "migration_summary_ja": "ChatGPTから移行する場合は、利用するモデルAPI、認証、会話履歴、ファイル機能、運用基盤を事前に確認してください。",
+        "strengths_ja": [
+          "セルフホスト可能",
+          "複数のAIモデルに対応",
+          "MITライセンス"
+        ],
+        "constraints_ja": [
+          "利用するモデルAPIの契約・料金は別途必要",
+          "サーバー運用と更新管理が必要"
+        ]
+      }
+    },
+    {
+      "candidate_id": "ff2ef9fa-14b7-4dbf-8a7c-51b312541ec1",
+      "product": {
+        "slug": "zapier",
+        "name": "Zapier",
+        "category": "自動化",
+        "description_ja": "複数のアプリやデータを接続し、トリガーとアクションで業務ワークフローを自動化するサービス。",
+        "website_url": "https://zapier.com/"
+      },
+      "project": {
+        "slug": "bytechef",
+        "name": "ByteChef",
+        "category": "自動化",
+        "short_description_ja": "AIエージェントとワークフロー自動化を組み合わせられる、セルフホスト対応のオープンコア自動化プラットフォーム。",
+        "official_url": "https://www.bytechef.io/",
+        "repository_url": "https://github.com/bytechefhq/bytechef",
+        "license_spdx": "Apache-2.0"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Zapierから移行する場合は、利用中の連携先、認証方式、分岐・再試行、実行履歴、チーム権限を小規模なワークフローから検証してください。",
+        "strengths_ja": [
+          "コア機能はApache-2.0",
+          "セルフホスト可能",
+          "ワークフローとAIエージェントを統合"
+        ],
+        "constraints_ja": [
+          "一部機能はEnterprise License",
+          "Zapier固有の連携や既存Zapは個別に再構築が必要"
+        ]
+      }
+    }
+  ]
+}
