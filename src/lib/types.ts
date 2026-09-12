@@ -25,6 +25,10 @@ export type DirectoryItem = {
   forks_count?: number | null;
   open_issues_count?: number | null;
   owner_avatar_url?: string | null;
+  repository_created_at?: string | null;
+  latest_release_tag?: string | null;
+  latest_release_published_at?: string | null;
+  topics?: string[] | null;
   last_commit_at: string | null;
   snapshot_observed_at: string | null;
 };
