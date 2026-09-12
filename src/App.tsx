@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Github, Menu, Search
 import { supabase } from "./lib/supabase";
 import { fallbackItems } from "./lib/fallback-data";
 import type { DirectoryItem } from "./lib/types";
+import { productGuides } from "./lib/product-guides";
 
 function useDirectoryItems() {
   const [items, setItems] = useState<DirectoryItem[]>(fallbackItems);
@@ -165,17 +166,65 @@ function AlternativesPage() {
   const items = useDirectoryItems();
   const candidates = items.filter(i => i.product_slug === slug);
   const productName = candidates[0]?.product_name;
+  const guide = slug ? productGuides[slug] : undefined;
+
   if (!productName) return <section className="not-found"><p>この比較ページは準備中です。</p><Link to="/">トップへ戻る</Link></section>;
+
+  const selfHostedCount = candidates.filter(i => i.docker_available).length;
+  const avgDifficulty = candidates.length
+    ? (candidates.reduce((sum, i) => sum + (i.migration_difficulty || 0), 0) / candidates.filter(i => i.migration_difficulty).length || 0).toFixed(1)
+    : "—";
 
   return (
     <section className="alternatives-page">
       <div className="breadcrumb"><Link to="/"><ArrowLeft size={14}/> トップ</Link><span>/</span><span>{productName}</span></div>
+
       <div className="comparison-hero">
         <span className="section-label">{productName} ALTERNATIVES</span>
         <h1>{productName} の代替OSS</h1>
-        <p>候補ごとに、移行難易度・ライセンス・向いているケース・注意点を整理しています。</p>
-        <div className="comparison-meta"><span>{candidates.length} candidates</span><span><ShieldCheck size={14}/> reviewed</span></div>
+        <p>{guide?.intro || "候補ごとに、移行難易度・ライセンス・向いているケース・注意点を整理しています。"}</p>
+        <div className="comparison-meta">
+          <span>{candidates.length} candidates</span>
+          <span>{selfHostedCount} self-hosted</span>
+          <span>avg. difficulty {avgDifficulty}</span>
+          <span><ShieldCheck size={14}/> reviewed</span>
+        </div>
       </div>
+
+      {guide && (
+        <>
+          <section className="guide-summary">
+            <div className="guide-summary-copy">
+              <span className="section-label">EDITOR'S NOTE</span>
+              <h2>{guide.headline}</h2>
+            </div>
+            <div className="guide-picks">
+              {guide.bestFor.map(pick => (
+                <div key={pick.label}>
+                  <span>{pick.label}</span>
+                  <strong>{pick.project}</strong>
+                  <p>{pick.reason}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="change-map">
+            <div className="section-header mini"><div><span>WHAT CHANGES</span><h2>{productName}から何が変わる？</h2></div></div>
+            <div className="change-grid">
+              {guide.changes.map(change => (
+                <div key={change.label}>
+                  <span>{change.label}</span>
+                  <div><small>現在</small><strong>{change.before}</strong></div>
+                  <ArrowRight size={16}/>
+                  <div><small>移行後</small><strong>{change.after}</strong></div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
       <div className="comparison-table">
         <div className="comparison-table-head"><span>候補</span><span>移行難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
         {candidates.map(item => <div className="comparison-row" key={item.relation_id}>
@@ -185,6 +234,7 @@ function AlternativesPage() {
           <span>{item.docker_available ? "対応" : "要確認"}</span>
         </div>)}
       </div>
+
       <div className="candidate-stack">
         {candidates.map((item,index) => <article className="candidate-detail" key={item.relation_id}>
           <div className="candidate-number">0{index+1}</div>
@@ -202,6 +252,30 @@ function AlternativesPage() {
           </div>
         </article>)}
       </div>
+
+      {guide && (
+        <>
+          <section className="migration-guide">
+            <div>
+              <span className="section-label">MIGRATION RISKS</span>
+              <h2>移行で失う可能性があるもの</h2>
+              <ul>{guide.risks.map(risk => <li key={risk}>{risk}</li>)}</ul>
+            </div>
+            <div>
+              <span className="section-label">MIGRATION PLAN</span>
+              <h2>移行の進め方</h2>
+              <ol>{guide.steps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span>{step}</li>)}</ol>
+            </div>
+          </section>
+
+          <section className="faq-section">
+            <div className="section-header mini"><div><span>FAQ</span><h2>よくある質問</h2></div></div>
+            <div className="faq-list">
+              {guide.faq.map(item => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}
+            </div>
+          </section>
+        </>
+      )}
     </section>
   );
 }
