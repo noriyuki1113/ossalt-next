@@ -98,13 +98,23 @@ async function promoteBatch() {
   const results = [];
 
   for (const record of payload.records || []) {
+    const candidateQuery = supabase.from("import_candidates").select("*");
+    const lookup = record.candidate_id
+      ? candidateQuery.eq("id", record.candidate_id)
+      : candidateQuery.eq("source_slug", record.source_slug);
     const { data: candidate, error: candidateError } = await withRetry(
       "Load candidate",
-      () => supabase.from("import_candidates").select("*").eq("id", record.candidate_id).single(),
+      () => lookup.maybeSingle(),
     );
     if (candidateError) throw candidateError;
-    if (!candidate) throw new Error(`Candidate not found: ${record.candidate_id}`);
-    if (candidate.import_state === "rejected") throw new Error(`Candidate is rejected: ${record.candidate_id}`);
+    if (!candidate) {
+      console.warn(`Skipping missing candidate: ${record.candidate_id || record.source_slug}`);
+      continue;
+    }
+    if (candidate.import_state === "rejected") {
+      console.warn(`Skipping rejected candidate: ${candidate.id}`);
+      continue;
+    }
 
     assertSlug(record.product.slug, "product.slug");
     assertSlug(record.project.slug, "project.slug");
@@ -201,7 +211,7 @@ async function promoteBatch() {
     );
     if (candidateUpdateError) throw candidateUpdateError;
 
-    results.push({ product, project, relation_id: relation.id, candidate_id: candidate.id });
+    results.push({ product, project, relation_id: relation.id, candidate_id: candidate.id, source_slug: candidate.source_slug });
     console.log(`Published ${project.name} as an alternative for ${product.name}`);
   }
 
