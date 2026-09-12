@@ -74,8 +74,13 @@ function ProjectMark({ item }: { item: DirectoryItem }) {
 
 function DirectoryCard({ item }: { item: DirectoryItem }) {
   return (
-    <Card className="group flex h-full flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
-      <CardHeader>
+    <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
+      <Link
+        to={`/projects/${item.project_slug}`}
+        aria-label={`${item.project_name} の詳細を見る`}
+        className="absolute inset-0 z-0"
+      />
+      <CardHeader className="relative z-10 pointer-events-none">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <ProjectMark item={item}/>
@@ -84,7 +89,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
           <TrustMark item={item}/>
         </div>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="relative z-10 flex-1 pointer-events-none">
         <p className="text-sm leading-7 text-zinc-600">{item.short_description_ja}</p>
         <div className="mt-5 grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">移行難易度</span><b className="mt-1 block text-sm">{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</b></div>
@@ -103,9 +108,9 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
           {item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 && <span className="inline-flex items-center gap-1 text-emerald-600"><Activity size={12}/>Active</span>}
         </div>
       </CardContent>
-      <CardFooter className="gap-2 border-t border-zinc-100 pt-4">
-        <Button asChild size="sm"><Link to={`/projects/${item.project_slug}`}>詳細を見る <ArrowRight size={13}/></Link></Button>
-        {item.repository_url && <Button asChild size="sm" variant="ghost"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}
+      <CardFooter className="relative z-10 gap-2 border-t border-zinc-100 pt-4 pointer-events-none">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 transition group-hover:gap-2">詳細へ <ArrowRight size={13}/></span>
+        {item.repository_url && <Button asChild size="sm" variant="ghost" className="pointer-events-auto"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}
       </CardFooter>
     </Card>
   );
