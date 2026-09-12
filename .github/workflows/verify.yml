@@ -14,4 +14,8 @@ jobs:
         with:
           node-version: 24
       - run: npm install
+      - name: Check maintenance scripts
+        run: |
+          node --check scripts/import-openalternative-candidates.mjs
+          node --check scripts/review-import-candidate.mjs
       - run: npm run build
