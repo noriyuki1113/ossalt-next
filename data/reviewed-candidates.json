@@ -128,6 +128,38 @@
           "本番運用では認証・監視・スケーリング設計が必要"
         ]
       }
+    },
+    {
+      "candidate_id": "e138c241-1ea6-4758-8a7b-59cbcc4f8d06",
+      "product": {
+        "slug": "microsoft-copilot-studio",
+        "name": "Microsoft Copilot Studio",
+        "category": "AIエージェント開発",
+        "description_ja": "自然言語やグラフィカルな編集でAIエージェントとワークフローを構築・公開するMicrosoftのサービス。",
+        "website_url": "https://www.microsoft.com/ja-jp/microsoft-copilot/microsoft-copilot-studio"
+      },
+      "project": {
+        "slug": "letta",
+        "name": "Letta",
+        "category": "AIエージェント開発",
+        "short_description_ja": "長期記憶と継続的な状態を持つAIエージェントを構築・運用できる、セルフホスト対応のオープンソース基盤。",
+        "official_url": "https://www.letta.com/",
+        "repository_url": "https://github.com/letta-ai/letta",
+        "license_spdx": "Apache-2.0"
+      },
+      "relation": {
+        "migration_difficulty": 4,
+        "migration_summary_ja": "Copilot Studioから移行する場合は、エージェントの会話設計、長期記憶、外部ツール、認証、公開チャネルを整理し、Lettaの状態保持型エージェントとして段階的に再構築してください。",
+        "strengths_ja": [
+          "Apache-2.0ライセンス",
+          "セルフホスト可能",
+          "長期記憶を持つ状態保持型エージェントに強い"
+        ],
+        "constraints_ja": [
+          "Microsoft 365固有の統合は個別実装が必要",
+          "本番運用ではモデルAPI・認証・監視・インフラ設計が必要"
+        ]
+      }
     }
   ]
 }
