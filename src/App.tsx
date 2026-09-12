@@ -83,26 +83,26 @@ function HomePage() {
   return (
     <>
       <section className="hero">
-        <p className="eyebrow">OSS MIGRATION NAVIGATOR</p>
-        <h1>使っているSaaSを、<em>次の選択肢へ。</em></h1>
-        <p className="hero-copy">OSSを眺めるためではなく、移行を判断するための日本語ガイド。</p>
+        <div className="hero-kicker"><span className="status-dot" /> VERIFIED OSS ALTERNATIVES</div>
+        <h1>そのSaaS、<em>OSSに置き換えられるかも。</em></h1>
+        <p className="hero-copy">いま使っているサービス名から、実用的なOSS代替候補と移行時の注意点を日本語で確認できます。</p>
         <label className="searchbox"><Search size={20} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="置き換えたいサービス名を入力（例：Notion）" /></label>
         <div className="chips">{["Notion", "Slack", "Figma", "Airtable", "Google Analytics"].map((name) => <button key={name} onClick={() => setQuery(name)}>{name}</button>)}</div>
-        <p className="hero-note"><ShieldCheck size={15} /> 比較順位とスポンサー掲載は分離しています</p>
+        <div className="hero-proof"><span><ShieldCheck size={15} /> 公式情報を確認</span><span>スポンサーと比較順位を分離</span><span>日本語で移行ポイントを整理</span></div>
       </section>
 
       <section className="journey" id="find">
-        <div className="section-heading"><p className="eyebrow">HOW IT WORKS</p><h2>移行判断を、3つのステップで。</h2></div>
+        <div className="section-heading"><p className="eyebrow">使い方</p><h2>移行判断を、3つのステップで。</h2><p className="section-copy">候補を探すだけでなく、導入前に確認すべきことまで一緒に整理します。</p></div>
         <div className="journey-grid">{journeys.map((journey) => <article key={journey.number}><span>{journey.number}</span><h3>{journey.title}</h3><p>{journey.body}</p></article>)}</div>
       </section>
 
       <section className="directory" id="compare">
-        <div className="section-heading split"><div><p className="eyebrow">START WITH A SERVICE</p><h2>いま使っているサービスから探す</h2></div><p>候補を開くと、移行時の注意点と公式根拠を確認できます。</p></div>
+        <div className="section-heading split"><div><p className="eyebrow">OSS代替候補</p><h2>いま使っているサービスから探す</h2></div><p>各候補には、ライセンス・セルフホスト可否・移行難易度・公式リンクをまとめています。</p></div>
         <div className="cards">{visibleItems.map((item) => <ToolCard item={item} key={item.relation_id} />)}</div>
         {visibleItems.length === 0 && <p className="empty">一致する候補がありません。サービス名を短くしてお試しください。</p>}
       </section>
 
-      <section className="guides" id="guides"><div><p className="eyebrow">BEFORE YOU MIGRATE</p><h2>導入前に確認すること</h2></div><div className="guide-list"><p><b>01</b> ライセンスと商用利用の条件</p><p><b>02</b> ホスティング・バックアップ・運用体制</p><p><b>03</b> データ移行とチームへの展開方法</p></div></section>
+      <section className="guides" id="guides"><div><p className="eyebrow">導入前チェック</p><h2>乗り換える前に、ここだけは確認。</h2><p className="section-copy">OSSは自由度が高いぶん、運用責任も増えます。導入前に最低限の確認を。</p></div><div className="guide-list"><p><b>01</b> ライセンスと商用利用の条件</p><p><b>02</b> ホスティング・バックアップ・運用体制</p><p><b>03</b> データ移行とチームへの展開方法</p></div></section>
     </>
   );
 }
@@ -118,7 +118,7 @@ function AlternativesPage() {
   return (
     <section className="alternatives-page">
       <div className="breadcrumb"><Link to="/"><ArrowLeft size={14} /> トップ</Link><span>/</span><span>{productName}の代替</span></div>
-      <p className="eyebrow">ALTERNATIVES FOR {productName.toUpperCase()}</p>
+      <p className="eyebrow">{productName} のOSS代替候補</p>
       <h1>{productName}の代替OSSを比較</h1>
       <p className="alternative-lead">{productName}を置き換える際に確認したい、ライセンス・運用・データ移行の観点をまとめています。最終判断の前に各候補の公式情報をご確認ください。</p>
       <div className="candidate-stack">{candidates.map((item) => <article key={item.relation_id} className="candidate-detail">
