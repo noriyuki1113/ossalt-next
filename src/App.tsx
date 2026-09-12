@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Clock3, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, CircleDot, Clock3, GitFork, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -62,8 +62,13 @@ function relativeDate(value: string | null) {
   return `${Math.floor(days / 365)}年前`;
 }
 
-function ProjectMark({ name }: { name: string }) {
-  return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{name.slice(0, 2).toUpperCase()}</div>;
+function ProjectMark({ item }: { item: DirectoryItem }) {
+  const repoOwner = item.repository_url?.match(/^https?:\/\/github\.com\/([^/]+)/)?.[1];
+  const src = item.owner_avatar_url || (repoOwner ? `https://github.com/${repoOwner}.png?size=88` : null);
+  if (src) {
+    return <img src={src} alt="" loading="lazy" className="size-11 shrink-0 rounded-xl border border-zinc-200 bg-white object-cover shadow-sm" />;
+  }
+  return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{item.project_name.slice(0, 2).toUpperCase()}</div>;
 }
 
 function DirectoryCard({ item }: { item: DirectoryItem }) {
@@ -72,7 +77,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <ProjectMark name={item.project_name}/>
+            <ProjectMark item={item}/>
             <div><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400">{item.product_name} の代替</p><h3 className="mt-1 text-2xl font-bold tracking-tight">{item.project_name}</h3></div>
           </div>
           <TrustMark item={item}/>
@@ -91,6 +96,8 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
         </div>
         <div className="mt-4 flex items-center gap-4 text-[11px] text-zinc-500">
           {item.stars_count != null && <span className="inline-flex items-center gap-1"><Star size={12}/>{item.stars_count.toLocaleString()}</span>}
+          {item.forks_count != null && <span className="inline-flex items-center gap-1"><GitFork size={12}/>{item.forks_count.toLocaleString()}</span>}
+          {item.open_issues_count != null && <span className="inline-flex items-center gap-1"><CircleDot size={12}/>{item.open_issues_count.toLocaleString()}</span>}
           <span className="inline-flex items-center gap-1"><Clock3 size={12}/>{relativeDate(item.last_commit_at)}</span>
           {item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 && <span className="inline-flex items-center gap-1 text-emerald-600"><Activity size={12}/>Active</span>}
         </div>
