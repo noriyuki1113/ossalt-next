@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, Github, Menu, Search, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
-import { supabase } from "./lib/supabase";
-import { fallbackItems } from "./lib/fallback-data";
-import type { DirectoryItem } from "./lib/types";
-import { productGuides } from "./lib/product-guides";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/lib/supabase";
+import { fallbackItems } from "@/lib/fallback-data";
+import { productGuides } from "@/lib/product-guides";
+import type { DirectoryItem } from "@/lib/types";
 
 function useDirectoryItems() {
   const [items, setItems] = useState<DirectoryItem[]>(fallbackItems);
@@ -20,65 +24,61 @@ function useDirectoryItems() {
 function Header() {
   const [open, setOpen] = useState(false);
   return (
-    <header className="site-header">
-      <Link className="brand" to="/"><span className="brand-mark">O</span><span>ossalt</span></Link>
-      <nav className={open ? "nav nav-open" : "nav"}>
-        <a href="/#directory">代替候補</a>
-        <a href="/#collections">コレクション</a>
-        <a href="/#method">選び方</a>
-        <a href="/#policy">信頼方針</a>
-        <a className="nav-github" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>
-      </nav>
-      <button className="menu" onClick={() => setOpen(v => !v)} aria-label="メニュー">{open ? <X/> : <Menu/>}</button>
+    <header className="sticky top-0 z-50 border-b border-zinc-200/80 bg-white/85 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 lg:px-8">
+        <Link className="flex items-center gap-2 font-extrabold tracking-tight text-zinc-950" to="/">
+          <span className="grid size-8 place-items-center rounded-xl bg-zinc-950 text-sm text-white">O</span>
+          <span className="text-lg">ossalt</span>
+        </Link>
+        <nav className="hidden items-center gap-7 text-sm text-zinc-600 md:flex">
+          <a className="hover:text-zinc-950" href="/#directory">代替候補</a>
+          <a className="hover:text-zinc-950" href="/#collections">コレクション</a>
+          <a className="hover:text-zinc-950" href="/#method">選び方</a>
+          <a className="inline-flex items-center gap-1.5 hover:text-zinc-950" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer"><Github size={15}/> GitHub</a>
+        </nav>
+        <button className="md:hidden" onClick={() => setOpen(v => !v)} aria-label="メニュー">{open ? <X/> : <Menu/>}</button>
+      </div>
+      {open && <div className="border-t border-zinc-200 bg-white px-5 py-4 md:hidden">
+        <div className="flex flex-col gap-4 text-sm text-zinc-700">
+          <a href="/#directory">代替候補</a><a href="/#collections">コレクション</a><a href="/#method">選び方</a>
+        </div>
+      </div>}
     </header>
-  );
-}
-
-function Footer() {
-  return (
-    <footer id="policy">
-      <div><Link className="brand" to="/"><span className="brand-mark">O</span><span>ossalt</span></Link><p>SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div>
-      <div><p>掲載候補は公式情報を確認し、レビュー済みのものだけを公開。スポンサー掲載と通常順位は分離します。</p><a href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">レビュー基盤を見る <ArrowUpRight size={14}/></a></div>
-    </footer>
   );
 }
 
 function TrustMark({ item }: { item: DirectoryItem }) {
   const verified = item.verification_state === "verified";
-  return <span className={verified ? "trust verified" : "trust"}><CheckCircle2 size={13}/>{verified ? "確認済み" : "要確認"}</span>;
+  return <Badge className={verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : ""}><CheckCircle2 size={12}/>{verified ? "確認済み" : "要確認"}</Badge>;
 }
 
-function Difficulty({ value }: { value: number | null }) {
-  if (!value) return <span className="metric-value">—</span>;
-  return <span className="metric-value">{value}/5</span>;
-}
-
-function CompactCard({ item }: { item: DirectoryItem }) {
+function DirectoryCard({ item }: { item: DirectoryItem }) {
   return (
-    <article className="directory-card">
-      <div className="card-head">
-        <div>
-          <div className="card-overline">{item.product_name} の代替</div>
-          <h3>{item.project_name}</h3>
+    <Card className="group flex h-full flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
+      <CardHeader>
+        <div className="flex items-start justify-between gap-3">
+          <div><p className="text-[11px] font-medium uppercase tracking-[0.12em] text-zinc-400">{item.product_name} の代替</p><h3 className="mt-1 text-2xl font-bold tracking-tight">{item.project_name}</h3></div>
+          <TrustMark item={item}/>
         </div>
-        <TrustMark item={item}/>
-      </div>
-      <p className="card-description">{item.short_description_ja}</p>
-      <div className="card-metrics">
-        <div><span>移行難易度</span><Difficulty value={item.migration_difficulty}/></div>
-        <div><span>ライセンス</span><strong>{item.license_spdx || "要確認"}</strong></div>
-        <div><span>セルフホスト</span><strong>{item.docker_available ? "対応" : "要確認"}</strong></div>
-      </div>
-      <div className="card-tags">
-        {item.category && <span>{item.category}</span>}
-        {item.primary_language && <span>{item.primary_language}</span>}
-        {item.stars_count != null && <span>★ {item.stars_count.toLocaleString()}</span>}
-      </div>
-      <div className="card-actions">
-        <Link className="primary-action" to={`/alternatives/${item.product_slug}`}>比較を見る <ArrowRight size={14}/></Link>
-        {item.repository_url && <a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>}
-      </div>
-    </article>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <p className="text-sm leading-7 text-zinc-600">{item.short_description_ja}</p>
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">移行難易度</span><b className="mt-1 block text-sm">{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</b></div>
+          <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">ライセンス</span><b className="mt-1 block truncate text-sm">{item.license_spdx || "要確認"}</b></div>
+          <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">セルフホスト</span><b className="mt-1 block text-sm">{item.docker_available ? "対応" : "要確認"}</b></div>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {item.category && <Badge>{item.category}</Badge>}
+          {item.primary_language && <Badge>{item.primary_language}</Badge>}
+          {item.stars_count != null && <Badge>★ {item.stars_count.toLocaleString()}</Badge>}
+        </div>
+      </CardContent>
+      <CardFooter className="gap-2 border-t border-zinc-100 pt-4">
+        <Button asChild size="sm"><Link to={`/alternatives/${item.product_slug}`}>比較を見る <ArrowRight size={13}/></Link></Button>
+        {item.repository_url && <Button asChild size="sm" variant="ghost"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}
+      </CardFooter>
+    </Card>
   );
 }
 
@@ -88,14 +88,12 @@ function HomePage() {
   const [category, setCategory] = useState("すべて");
   const [selfHostOnly, setSelfHostOnly] = useState(false);
 
-  const categories = useMemo(() => ["すべて", ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[])).slice(0, 10)], [items]);
-  const services = useMemo(() => Array.from(new Set(items.map(i => i.product_name))).slice(0, 8), [items]);
-
+  const categories = useMemo(() => ["すべて", ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[])).slice(0, 9)], [items]);
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(item => {
-      const haystack = [item.product_name, item.project_name, item.category, item.license_spdx].filter(Boolean).join(" ").toLowerCase();
-      return (!q || haystack.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available);
+      const text = [item.product_name,item.project_name,item.category,item.license_spdx].filter(Boolean).join(" ").toLowerCase();
+      return (!q || text.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available);
     });
   }, [items, query, category, selfHostOnly]);
 
@@ -105,56 +103,68 @@ function HomePage() {
     verified: items.filter(i => i.verification_state === "verified").length,
   };
 
-  const collectionCards = [
-    { title: "セルフホストできる", count: items.filter(i => i.docker_available).length, text: "自社環境で運用したい人向け", action: () => setSelfHostOnly(true) },
-    { title: "移行しやすい", count: items.filter(i => (i.migration_difficulty ?? 9) <= 2).length, text: "難易度2以下の候補", action: () => { setSelfHostOnly(false); setCategory("すべて"); } },
-    { title: "開発者向け", count: items.filter(i => ["開発","API開発","BaaS","AIエージェント開発"].includes(i.category || "")).length, text: "開発系カテゴリを中心に", action: () => setCategory("開発") },
-  ];
-
   return (
     <>
-      <section className="hero">
-        <div className="hero-copy-wrap">
-          <span className="hero-eyebrow">OPEN SOURCE ALTERNATIVES, FOR JAPAN</span>
-          <h1>いつものSaaSに、<br/><em>もうひとつの選択肢を。</em></h1>
-          <p>SaaS名からOSS代替候補を探し、ライセンス・運用負担・移行難易度まで比較できます。</p>
-        </div>
-        <div className="hero-search-wrap">
-          <label className="searchbox"><Search size={20}/><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Notion、Slack、Firebase..." /></label>
-          <div className="popular-row"><span>人気の検索</span>{services.slice(0,6).map(name => <button key={name} onClick={() => setQuery(name)}>{name}</button>)}</div>
-        </div>
-        <div className="hero-stats">
-          <div><strong>{stats.products}</strong><span>SaaS</span></div>
-          <div><strong>{stats.projects}</strong><span>OSS候補</span></div>
-          <div><strong>{stats.verified}</strong><span>レビュー済み</span></div>
-        </div>
-      </section>
-
-      <section className="collection-strip" id="collections">
-        <div className="section-header"><div><span>COLLECTIONS</span><h2>目的から探す</h2></div><p>サービス名が決まっていなくても、運用方針から候補を見つけられます。</p></div>
-        <div className="collection-grid">
-          {collectionCards.map(card => <button key={card.title} onClick={card.action}><span>{card.count} projects</span><h3>{card.title}</h3><p>{card.text}</p><ArrowUpRight size={17}/></button>)}
-        </div>
-      </section>
-
-      <section className="directory" id="directory">
-        <div className="directory-toolbar">
-          <div><span className="section-label">DIRECTORY</span><h2>OSS代替候補</h2><p>{visible.length} 件を表示中</p></div>
-          <div className="filter-controls">
-            <div className="filter-pills">{categories.map(name => <button className={category === name ? "active" : ""} onClick={() => setCategory(name)} key={name}>{name}</button>)}</div>
-            <button className={selfHostOnly ? "selfhost-toggle active" : "selfhost-toggle"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={14}/> セルフホストのみ</button>
+      <section className="mx-auto max-w-7xl px-5 pb-14 pt-20 lg:px-8 lg:pt-28">
+        <div className="grid items-end gap-12 lg:grid-cols-[1.15fr_.85fr]">
+          <div>
+            <Badge className="border-violet-200 bg-violet-50 text-violet-700">OPEN SOURCE ALTERNATIVES, FOR JAPAN</Badge>
+            <h1 className="mt-6 max-w-4xl text-5xl font-extrabold leading-[1.02] tracking-[-0.06em] text-zinc-950 sm:text-6xl lg:text-7xl">
+              いつものSaaSに、<br/><span className="text-violet-600">もうひとつの選択肢を。</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-600 lg:text-lg">SaaS名からOSS代替候補を探し、ライセンス・運用負担・移行難易度まで比較できます。</p>
+          </div>
+          <div>
+            <label className="flex h-16 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 shadow-xl shadow-zinc-200/40 focus-within:border-violet-400">
+              <Search size={20} className="text-zinc-400"/>
+              <input className="h-full flex-1 bg-transparent text-base outline-none placeholder:text-zinc-400" value={query} onChange={e => setQuery(e.target.value)} placeholder="Notion、Slack、Firebase..." />
+            </label>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {["Notion","Slack","Zapier","Firebase","Google Analytics"].map(name => <Button key={name} variant="outline" size="sm" onClick={() => setQuery(name)}>{name}</Button>)}
+            </div>
           </div>
         </div>
-        <div className="cards">{visible.map(item => <CompactCard item={item} key={item.relation_id}/>)}</div>
-        {visible.length === 0 && <div className="empty-state"><Search size={24}/><h3>候補が見つかりません</h3><p>検索語やフィルターを変えてみてください。</p></div>}
+        <div className="mt-14 grid grid-cols-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+          {[["SaaS",stats.products],["OSS候補",stats.projects],["レビュー済み",stats.verified]].map(([label,value],i) => <div key={label} className={`p-5 sm:p-6 ${i ? "border-l border-zinc-200" : ""}`}><b className="block text-2xl sm:text-3xl">{value}</b><span className="mt-1 block text-xs text-zinc-500">{label}</span></div>)}
+        </div>
       </section>
 
-      <section className="method" id="method">
-        <div className="section-header light"><div><span>OSSALT METHOD</span><h2>「OSSだから」ではなく、<br/>移行できるかで選ぶ。</h2></div><p>発見よりも意思決定。ossaltは、乗り換えた後に困らないための情報を優先します。</p></div>
-        <div className="method-grid">
-          <article><span>01</span><h3>移行難易度</h3><p>データ移行、設定再構築、運用変更の大きさを5段階で整理。</p></article>
-          <article><span>02</span><h3>失うもの</h3><p>既存SaaS固有の機能や連携で、代替できない可能性を明記。</p></article>
-          <article><span>03</span><h3>運用責任</h3><p>セルフホスト時に必要な監視、更新、バックアップまで含めて判断。</p></article>
+      <section id="collections" className="border-y border-zinc-200 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Collections</p><h2 className="mt-2 text-3xl font-bold tracking-tight">目的から探す</h2></div>
+            <p className="max-w-lg text-sm leading-7 text-zinc-500">サービス名が決まっていなくても、運用方針から候補を見つけられます。</p>
+          </div>
+          <div className="mt-7 grid gap-3 md:grid-cols-3">
+            {[
+              ["セルフホストできる","自社環境で運用したい人向け",() => setSelfHostOnly(true)],
+              ["移行しやすい","難易度の低い候補から検討",() => {setSelfHostOnly(false);setCategory("すべて");}],
+              ["開発者向け","BaaS・API・AI開発系",() => setCategory("BaaS")],
+            ].map(([title,body,action]) => <button key={title as string} onClick={action as () => void} className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-left transition hover:border-violet-300 hover:bg-violet-50/40">
+              <h3 className="text-lg font-bold">{title as string}</h3><p className="mt-2 text-sm text-zinc-500">{body as string}</p><ArrowUpRight className="mt-8 text-zinc-400 transition group-hover:text-violet-600" size={18}/>
+            </button>)}
+          </div>
+        </div>
+      </section>
+
+      <section id="directory" className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+        <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Directory</p><h2 className="mt-2 text-4xl font-bold tracking-tight">OSS代替候補</h2><p className="mt-2 text-sm text-zinc-500">{visible.length} 件を表示中</p></div>
+          <div className="flex max-w-4xl flex-wrap gap-2">
+            {categories.map(name => <Button key={name} size="sm" variant={category === name ? "default" : "outline"} onClick={() => setCategory(name)}>{name}</Button>)}
+            <Button size="sm" variant={selfHostOnly ? "soft" : "outline"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={13}/> セルフホストのみ</Button>
+          </div>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{visible.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+      </section>
+
+      <section id="method" className="bg-zinc-950 text-white">
+        <div className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-300">Ossalt method</p>
+          <div className="mt-3 grid gap-8 lg:grid-cols-2"><h2 className="text-4xl font-bold tracking-tight">「OSSだから」ではなく、<br/>移行できるかで選ぶ。</h2><p className="max-w-xl text-sm leading-7 text-zinc-400">発見よりも意思決定。乗り換えた後に困らないための情報を優先します。</p></div>
+          <div className="mt-9 grid overflow-hidden rounded-2xl border border-zinc-800 md:grid-cols-3">
+            {[["01","移行難易度","データ移行、設定再構築、運用変更の大きさを5段階で整理。"],["02","失うもの","既存SaaS固有の機能や連携で、代替できない可能性を明記。"],["03","運用責任","監視、更新、バックアップまで含めて判断。"]].map(([n,t,b],i) => <div key={n} className={`bg-zinc-900 p-6 ${i ? "border-t border-zinc-800 md:border-l md:border-t-0" : ""}`}><span className="text-xs text-violet-300">{n}</span><h3 className="mt-10 text-xl font-bold">{t}</h3><p className="mt-2 text-sm leading-7 text-zinc-400">{b}</p></div>)}
+          </div>
         </div>
       </section>
     </>
@@ -167,120 +177,44 @@ function AlternativesPage() {
   const candidates = items.filter(i => i.product_slug === slug);
   const productName = candidates[0]?.product_name;
   const guide = slug ? productGuides[slug] : undefined;
-
-  if (!productName) return <section className="not-found"><p>この比較ページは準備中です。</p><Link to="/">トップへ戻る</Link></section>;
-
-  const selfHostedCount = candidates.filter(i => i.docker_available).length;
-  const avgDifficulty = candidates.length
-    ? (candidates.reduce((sum, i) => sum + (i.migration_difficulty || 0), 0) / candidates.filter(i => i.migration_difficulty).length || 0).toFixed(1)
-    : "—";
+  if (!productName) return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p>この比較ページは準備中です。</p><Button asChild className="mt-5"><Link to="/">トップへ戻る</Link></Button></section>;
 
   return (
-    <section className="alternatives-page">
-      <div className="breadcrumb"><Link to="/"><ArrowLeft size={14}/> トップ</Link><span>/</span><span>{productName}</span></div>
-
-      <div className="comparison-hero">
-        <span className="section-label">{productName} ALTERNATIVES</span>
-        <h1>{productName} の代替OSS</h1>
-        <p>{guide?.intro || "候補ごとに、移行難易度・ライセンス・向いているケース・注意点を整理しています。"}</p>
-        <div className="comparison-meta">
-          <span>{candidates.length} candidates</span>
-          <span>{selfHostedCount} self-hosted</span>
-          <span>avg. difficulty {avgDifficulty}</span>
-          <span><ShieldCheck size={14}/> reviewed</span>
-        </div>
+    <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8 lg:py-16">
+      <Link className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-950" to="/"><ArrowLeft size={14}/> トップへ</Link>
+      <div className="mt-10 border-b border-zinc-200 pb-10">
+        <Badge>{productName} ALTERNATIVES</Badge>
+        <h1 className="mt-5 text-5xl font-extrabold tracking-[-0.06em] lg:text-7xl">{productName} の代替OSS</h1>
+        <p className="mt-6 max-w-3xl text-base leading-8 text-zinc-600">{guide?.intro || "候補ごとに、移行難易度・ライセンス・向いているケース・注意点を整理しています。"}</p>
       </div>
 
-      {guide && (
-        <>
-          <section className="guide-summary">
-            <div className="guide-summary-copy">
-              <span className="section-label">EDITOR'S NOTE</span>
-              <h2>{guide.headline}</h2>
-            </div>
-            <div className="guide-picks">
-              {guide.bestFor.map(pick => (
-                <div key={pick.label}>
-                  <span>{pick.label}</span>
-                  <strong>{pick.project}</strong>
-                  <p>{pick.reason}</p>
-                </div>
-              ))}
-            </div>
-          </section>
+      {guide && <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+        <Card><CardHeader><Badge className="border-violet-200 bg-violet-50 text-violet-700">EDITOR'S NOTE</Badge><h2 className="mt-4 text-3xl font-bold tracking-tight">{guide.headline}</h2></CardHeader><CardContent><p className="text-sm leading-7 text-zinc-600">完全な置き換えよりも、優先機能と運用条件を決めて候補を選ぶのが現実的です。</p></CardContent></Card>
+        <div className="grid gap-3">{guide.bestFor.map(pick => <Card key={pick.label}><CardContent className="flex items-start justify-between gap-4"><div><p className="text-xs uppercase tracking-wider text-zinc-400">{pick.label}</p><h3 className="mt-1 font-bold">{pick.project}</h3><p className="mt-1 text-sm text-zinc-500">{pick.reason}</p></div><ArrowUpRight size={17} className="text-zinc-400"/></CardContent></Card>)}</div>
+      </div>}
 
-          <section className="change-map">
-            <div className="section-header mini"><div><span>WHAT CHANGES</span><h2>{productName}から何が変わる？</h2></div></div>
-            <div className="change-grid">
-              {guide.changes.map(change => (
-                <div key={change.label}>
-                  <span>{change.label}</span>
-                  <div><small>現在</small><strong>{change.before}</strong></div>
-                  <ArrowRight size={16}/>
-                  <div><small>移行後</small><strong>{change.after}</strong></div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </>
-      )}
-
-      <div className="comparison-table">
-        <div className="comparison-table-head"><span>候補</span><span>移行難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
-        {candidates.map(item => <div className="comparison-row" key={item.relation_id}>
-          <div><strong>{item.project_name}</strong><small>{item.short_description_ja}</small></div>
-          <Difficulty value={item.migration_difficulty}/>
-          <span>{item.license_spdx || "要確認"}</span>
-          <span>{item.docker_available ? "対応" : "要確認"}</span>
-        </div>)}
+      <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
+        <div className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] bg-zinc-50 px-4 py-3 text-[10px] uppercase tracking-wider text-zinc-400"><span>候補</span><span>難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
+        {candidates.map(item => <div key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></div>)}
       </div>
 
-      <div className="candidate-stack">
-        {candidates.map((item,index) => <article className="candidate-detail" key={item.relation_id}>
-          <div className="candidate-number">0{index+1}</div>
-          <div className="candidate-body">
-            <div className="candidate-head"><div><TrustMark item={item}/><h2>{item.project_name}</h2><p>{item.short_description_ja}</p></div></div>
-            <div className="detail-grid">
-              <div><h3>向いているケース</h3><ul>{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div>
-              <div><h3>確認が必要な点</h3><ul>{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div>
-            </div>
-            <div className="migration-note"><span>移行メモ</span><p>{item.migration_summary_ja}</p></div>
-            <div className="candidate-actions">
-              {item.official_url && <a className="button primary" href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={14}/></a>}
-              {item.repository_url && <a className="button" href={item.repository_url} target="_blank" rel="noreferrer"><Github size={14}/> GitHub</a>}
-            </div>
-          </div>
-        </article>)}
-      </div>
+      <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Card key={item.relation_id}>
+        <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><h2 className="mt-1 text-3xl font-bold">{item.project_name}</h2><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
+        <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
+        <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}</CardFooter>
+      </Card>)}</div>
 
-      {guide && (
-        <>
-          <section className="migration-guide">
-            <div>
-              <span className="section-label">MIGRATION RISKS</span>
-              <h2>移行で失う可能性があるもの</h2>
-              <ul>{guide.risks.map(risk => <li key={risk}>{risk}</li>)}</ul>
-            </div>
-            <div>
-              <span className="section-label">MIGRATION PLAN</span>
-              <h2>移行の進め方</h2>
-              <ol>{guide.steps.map((step, index) => <li key={step}><span>{String(index + 1).padStart(2, "0")}</span>{step}</li>)}</ol>
-            </div>
-          </section>
-
-          <section className="faq-section">
-            <div className="section-header mini"><div><span>FAQ</span><h2>よくある質問</h2></div></div>
-            <div className="faq-list">
-              {guide.faq.map(item => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}
-            </div>
-          </section>
-        </>
-      )}
+      {guide && <><div className="mt-8 grid gap-4 md:grid-cols-2"><Card><CardHeader><h2 className="text-2xl font-bold">移行で失う可能性があるもの</h2></CardHeader><CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{guide.risks.map(r => <li key={r}>• {r}</li>)}</ul></CardContent></Card><Card><CardHeader><h2 className="text-2xl font-bold">移行の進め方</h2></CardHeader><CardContent><ol className="space-y-3">{guide.steps.map((s,i) => <li key={s} className="flex gap-3 text-sm text-zinc-600"><span className="text-violet-600">{String(i+1).padStart(2,"0")}</span>{s}</li>)}</ol></CardContent></Card></div>
+      <div className="mt-10"><h2 className="text-3xl font-bold">よくある質問</h2><div className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200">{guide.faq.map(f => <details key={f.q} className="bg-white px-1 py-4"><summary className="cursor-pointer font-semibold">{f.q}</summary><p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">{f.a}</p></details>)}</div></div></>}
     </section>
   );
 }
 
+function Footer() {
+  return <footer className="border-t border-zinc-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-5 py-10 text-sm text-zinc-500 md:flex-row lg:px-8"><div><div className="font-bold text-zinc-950">ossalt</div><p className="mt-2">SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div><div className="max-w-xl"><p>掲載候補は公式情報を確認し、レビュー済みのものだけを公開します。</p><a className="mt-2 inline-flex items-center gap-1 text-violet-600" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">レビュー基盤を見る <ArrowUpRight size={13}/></a></div></div></footer>;
+}
+
 function Site() {
-  return <div className="app-shell"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
 }
 export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
