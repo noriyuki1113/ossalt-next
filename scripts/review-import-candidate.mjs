@@ -226,7 +226,7 @@ async function reject() {
 
   if (error) throw error;
   console.log(`Rejected candidate: ${data.name} (${data.id})`);
-  await writeSummary(`## Candidate rejected\n\n- **Name:** ${data.name}\n- **Candidate ID:** `${data.id}`\n- **Reviewer:** ${reviewer}\n`);
+  await writeSummary(`## Candidate rejected\n\n- **Name:** ${data.name}\n- **Candidate ID:** ${data.id}\n- **Reviewer:** ${reviewer}\n`);
 }
 
 async function approve() {
@@ -338,7 +338,7 @@ async function approve() {
 
   console.log(`Approved and published: ${candidate.name} as alternative for ${product.name}`);
   await writeSummary(
-    `## Candidate approved and published\n\n- **Project:** ${project.name} (`${project.slug}`)\n- **Alternative for:** ${product.name} (`${product.slug}`)\n- **Candidate ID:** `${candidate.id}`\n- **Relation ID:** `${relation.id}`\n- **Reviewer:** ${reviewer}\n- **Official URL:** ${officialUrl}\n- **Repository:** ${repositoryUrl}\n`,
+    `## Candidate approved and published\n\n- **Project:** ${project.name} (${project.slug})\n- **Alternative for:** ${product.name} (${product.slug})\n- **Candidate ID:** ${candidate.id}\n- **Relation ID:** ${relation.id}\n- **Reviewer:** ${reviewer}\n- **Official URL:** ${officialUrl}\n- **Repository:** ${repositoryUrl}\n`,
   );
 }
 
