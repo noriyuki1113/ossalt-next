@@ -63,11 +63,15 @@ function relativeDate(value: string | null) {
   return `${Math.floor(days / 365)}年前`;
 }
 
+const projectLogoOverrides: Record<string, string> = {
+  librechat: "https://raw.githubusercontent.com/danny-avila/LibreChat/main/client/public/assets/logo.svg",
+};
+
 function ProjectMark({ item }: { item: DirectoryItem }) {
   const repoOwner = item.repository_url?.match(/^https?:\/\/github\.com\/([^/]+)/)?.[1];
-  const src = item.owner_avatar_url || (repoOwner ? `https://github.com/${repoOwner}.png?size=88` : null);
+  const src = projectLogoOverrides[item.project_slug] || item.owner_avatar_url || (repoOwner ? `https://github.com/${repoOwner}.png?size=88` : null);
   if (src) {
-    return <img src={src} alt="" loading="lazy" className="size-11 shrink-0 rounded-xl border border-zinc-200 bg-white object-cover shadow-sm" />;
+    return <img src={src} alt="" loading="lazy" className="size-11 shrink-0 rounded-xl border border-zinc-200 bg-white object-contain p-1 shadow-sm" />;
   }
   return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{item.project_name.slice(0, 2).toUpperCase()}</div>;
 }
