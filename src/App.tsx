@@ -11,6 +11,36 @@ import { productGuides } from "@/lib/product-guides";
 import { projectProfiles } from "@/lib/project-profiles";
 import type { DirectoryItem } from "@/lib/types";
 
+const SITE_URL = "https://ossalt-next.vercel.app";
+
+function usePageMeta(title: string, description: string, path = "/") {
+  useEffect(() => {
+    document.title = title;
+    let descriptionMeta = document.querySelector('meta[name="description"]');
+    if (!descriptionMeta) {
+      descriptionMeta = document.createElement("meta");
+      descriptionMeta.setAttribute("name", "description");
+      document.head.appendChild(descriptionMeta);
+    }
+    descriptionMeta.setAttribute("content", description);
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", `${SITE_URL}${path}`);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    ogTitle?.setAttribute("content", title);
+    ogDescription?.setAttribute("content", description);
+    ogUrl?.setAttribute("content", `${SITE_URL}${path}`);
+  }, [title, description, path]);
+}
+
 function useDirectoryItems() {
   const [items, setItems] = useState<DirectoryItem[]>(fallbackItems);
   useEffect(() => {
@@ -140,6 +170,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
 }
 
 function HomePage() {
+  usePageMeta("ossalt — OSS移行ナビ", "SaaSからOSSへの移行を、日本語で探し、比べ、判断する。移行難易度・ライセンス・運用負担まで比較できます。", "/");
   const items = useDirectoryItems();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("すべて");
@@ -268,6 +299,7 @@ function DiscoveryCard({ title, description, count, to }: { title: string; descr
 }
 
 function CategoriesPage() {
+  usePageMeta("OSSカテゴリ一覧 | ossalt", "用途・カテゴリからオープンソース代替候補を探せます。", "/categories");
   const items = useDirectoryItems();
   const groups = Array.from(new Map(
     items.filter(i => i.category).map(i => [i.category!, items.filter(x => x.category === i.category)])
@@ -290,6 +322,7 @@ function CategoryPage() {
   const items = useDirectoryItems();
   const category = decodeURIComponent(slug || "");
   const rows = items.filter(i => i.category === category);
+  usePageMeta(`${category || "カテゴリ"}のOSS | ossalt`, `${category || "このカテゴリ"}で公開・レビュー済みのOSS代替候補を比較できます。`, `/categories/${encodeURIComponent(category)}`);
 
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/categories"><ArrowLeft size={14}/> カテゴリ一覧</Link>
@@ -310,6 +343,7 @@ const collectionDefinitions = {
 } as const;
 
 function CollectionsPage() {
+  usePageMeta("OSSコレクション | ossalt", "セルフホスト、更新が活発、移行しやすいなどの条件からOSSを探せます。", "/collections");
   const items = useDirectoryItems();
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Badge className="border-violet-200 bg-violet-50 text-violet-700">CURATED COLLECTIONS</Badge>
@@ -332,6 +366,7 @@ function CollectionPage() {
   const def = key ? collectionDefinitions[key as keyof typeof collectionDefinitions] : undefined;
   if (!def) return <Navigate to="/collections" replace/>;
   const rows = items.filter(def.test);
+  usePageMeta(`${def.title}のOSS | ossalt`, def.description, `/collections/${key}`);
 
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/collections"><ArrowLeft size={14}/> コレクション一覧</Link>
@@ -369,6 +404,8 @@ function ProjectPage() {
 
   const operational = profile?.operations ?? { setup: 3, updates: 3, backups: 3, monitoring: 3 };
   const relatedProducts = Array.from(new Map(relations.map(r => [r.product_slug, r])).values());
+  usePageMeta(`${item.project_name} — OSS詳細 | ossalt`, profile?.summary || item.short_description_ja || `${item.project_name}のOSS詳細と移行情報。`, `/projects/${item.project_slug}`);
+
   const similarProjects = items
     .filter(i => i.project_slug !== item.project_slug && i.category === item.category)
     .filter((row, index, all) => all.findIndex(x => x.project_slug === row.project_slug) === index)
@@ -525,6 +562,7 @@ function AlternativesPage() {
   const candidates = items.filter(i => i.product_slug === slug);
   const productName = candidates[0]?.product_name;
   const guide = slug ? productGuides[slug] : undefined;
+  usePageMeta(productName ? `${productName}の代替OSS | ossalt` : "代替OSS | ossalt", productName ? `${productName}から移行できるOSS候補を、移行難易度・ライセンス・運用負担で比較。` : "SaaSの代替OSSを比較。", `/alternatives/${slug || ""}`);
   if (!productName) return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p>この比較ページは準備中です。</p><Button asChild className="mt-5"><Link to="/">トップへ戻る</Link></Button></section>;
 
   return (
@@ -558,11 +596,26 @@ function AlternativesPage() {
   );
 }
 
+function AboutPage() {
+  usePageMeta("ossaltについて", "ossaltの目的、掲載基準、データ更新方針について。", "/about");
+  return <section className="mx-auto max-w-3xl px-5 py-16 lg:px-8"><Badge>ABOUT</Badge><h1 className="mt-5 text-5xl font-extrabold tracking-[-.055em]">ossaltについて</h1><div className="mt-8 space-y-6 text-sm leading-8 text-zinc-600"><p>ossaltは、SaaSからOSSへの移行を日本語で比較・判断するためのディレクトリです。単に代替候補を並べるのではなく、移行難易度、ライセンス、運用負担、失う可能性がある機能まで整理します。</p><p>GitHubの活動状況は定期的に取得し、編集情報と分離して扱います。候補データはレビュー済みのものだけを公開します。</p></div></section>;
+}
+
+function EditorialPolicyPage() {
+  usePageMeta("掲載・編集方針 | ossalt", "ossaltの掲載基準、検証状態、スポンサーと編集判断の分離方針。", "/editorial-policy");
+  return <section className="mx-auto max-w-3xl px-5 py-16 lg:px-8"><Badge>EDITORIAL POLICY</Badge><h1 className="mt-5 text-5xl font-extrabold tracking-[-.055em]">掲載・編集方針</h1><div className="mt-8 space-y-6 text-sm leading-8 text-zinc-600"><p>掲載候補は、公式サイト、公式リポジトリ、ライセンスなど確認可能な一次情報を優先します。不明な項目は推測せず「要確認」と表示します。</p><p>スポンサー掲載がある場合も、編集順位、レビュー状態、検証結果とは分離して扱います。GitHubのStarsや更新状況は取得日時付きのスナップショットとして扱います。</p><p>誤りや更新漏れはGitHubのIssueまたはPull Requestで報告できます。</p></div></section>;
+}
+
+function NotFoundPage() {
+  usePageMeta("ページが見つかりません | ossalt", "指定されたページは見つかりませんでした。", window.location.pathname);
+  return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p className="text-sm text-zinc-500">404</p><h1 className="mt-3 text-4xl font-bold">ページが見つかりません</h1><Button asChild className="mt-6"><Link to="/">トップへ戻る</Link></Button></section>;
+}
+
 function Footer() {
-  return <footer className="border-t border-zinc-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-5 py-10 text-sm text-zinc-500 md:flex-row lg:px-8"><div><div className="font-bold text-zinc-950">ossalt</div><p className="mt-2">SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div><div className="max-w-xl"><p>掲載候補は公式情報を確認し、レビュー済みのものだけを公開します。</p><a className="mt-2 inline-flex items-center gap-1 text-violet-600" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">レビュー基盤を見る <ArrowUpRight size={13}/></a></div></div></footer>;
+  return <footer className="border-t border-zinc-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-5 py-10 text-sm text-zinc-500 md:flex-row lg:px-8"><div><div className="font-bold text-zinc-950">ossalt</div><p className="mt-2">SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div><div className="flex flex-col gap-3 md:items-end"><div className="flex flex-wrap gap-4"><Link to="/about">ossaltについて</Link><Link to="/editorial-policy">掲載・編集方針</Link><Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link></div><a className="inline-flex items-center gap-1 text-violet-600" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">GitHubで修正提案 <ArrowUpRight size={13}/></a></div></div></footer>;
 }
 
 function Site() {
-  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes></main><Footer/></div>;
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="/about" element={<AboutPage/>}/><Route path="/editorial-policy" element={<EditorialPolicyPage/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></main><Footer/></div>;
 }
 export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
