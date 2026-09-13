@@ -69,7 +69,7 @@ function Header() {
         </nav>
         <button className="md:hidden" onClick={() => setOpen(v => !v)} aria-label="メニュー">{open ? <X/> : <Menu/>}</button>
       </div>
-      {open && <div className="border-t border-zinc-200 bg-white px-5 py-4 md:hidden">
+      {open && <div className="motion-panel border-t border-zinc-200 bg-white px-5 py-4 md:hidden">
         <div className="flex flex-col gap-4 text-sm text-zinc-700">
           <Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link><a href="/#method">選び方</a>
         </div>
@@ -127,7 +127,7 @@ function ProjectMark({ item }: { item: DirectoryItem }) {
 
 function DirectoryCard({ item }: { item: DirectoryItem }) {
   return (
-    <Card className="group relative flex h-full cursor-pointer flex-col overflow-hidden transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
+    <Card className="motion-card group relative flex h-full cursor-pointer flex-col overflow-hidden hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
       <Link
         to={`/projects/${item.project_slug}`}
         aria-label={`${item.project_name} の詳細を見る`}
@@ -162,7 +162,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
         </div>
       </CardContent>
       <CardFooter className="relative z-10 gap-2 border-t border-zinc-100 pt-4 pointer-events-none">
-        <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600 transition group-hover:gap-2">詳細へ <ArrowRight size={13}/></span>
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-violet-600">詳細へ <ArrowRight size={13} className="motion-arrow"/></span>
         {item.repository_url && <Button asChild size="sm" variant="ghost" className="pointer-events-auto"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}
       </CardFooter>
     </Card>
@@ -227,7 +227,7 @@ function HomePage() {
 
   return (
     <>
-      <section className="border-b border-zinc-200 bg-white">
+      <section className="motion-fade-up border-b border-zinc-200 bg-white">
         <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
           <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
@@ -289,7 +289,7 @@ function HomePage() {
         </div>
 
         <div className="mt-7 grid gap-8 lg:grid-cols-[220px_1fr]">
-          <aside className={`shrink-0 space-y-6 lg:block ${filtersOpen ? "block" : "hidden"}`}>
+          <aside className={`shrink-0 space-y-6 lg:block ${filtersOpen ? "motion-panel block" : "hidden"}`}>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">コレクション</p>
               <div className="mt-3 flex flex-col gap-1">
@@ -326,7 +326,7 @@ function HomePage() {
           </aside>
 
           <div>
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{pagedItems.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+            <div key={`${query}-${category}-${selfHostOnly}-${collection}-${page}`} className="motion-result grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{pagedItems.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
             {pageCount > 1 && <div className="mt-10 flex items-center justify-center gap-3">
               <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1,p-1))}>前へ</Button>
               <span className="text-xs text-zinc-500">{page} / {pageCount}</span>
