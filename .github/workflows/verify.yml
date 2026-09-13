@@ -19,4 +19,5 @@ jobs:
           node --check scripts/import-openalternative-candidates.mjs
           node --check scripts/review-import-candidate.mjs
           node --check scripts/sync-github-snapshots.mjs
+          node --check scripts/generate-readme.mjs
       - run: npm run build
