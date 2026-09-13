@@ -64,14 +64,33 @@ function relativeDate(value: string | null) {
 }
 
 const projectLogoOverrides: Record<string, string> = {
+  appflowy: "https://github.com/AppFlowy-IO.png?size=128",
+  mattermost: "https://github.com/mattermost.png?size=128",
+  activepieces: "https://github.com/activepieces.png?size=128",
+  appwrite: "https://github.com/appwrite.png?size=128",
+  bytechef: "https://github.com/bytechefhq.png?size=128",
+  "cal-com": "https://github.com/calcom.png?size=128",
+  dify: "https://github.com/langgenius.png?size=128",
+  formbricks: "https://github.com/formbricks.png?size=128",
+  immich: "https://github.com/immich-app.png?size=128",
+  jellyfin: "https://github.com/jellyfin.png?size=128",
+  langflow: "https://github.com/langflow-ai.png?size=128",
+  letta: "https://github.com/letta-ai.png?size=128",
   librechat: "https://raw.githubusercontent.com/danny-avila/LibreChat/main/client/public/assets/logo.svg",
+  listmonk: "https://github.com/knadh.png?size=128",
+  mautic: "https://github.com/mautic.png?size=128",
+  metabase: "https://github.com/metabase.png?size=128",
+  plane: "https://github.com/makeplane.png?size=128",
+  plausible: "https://github.com/plausible.png?size=128",
+  supabase: "https://github.com/supabase.png?size=128",
+  twenty: "https://github.com/twentyhq.png?size=128",
+  umami: "https://github.com/umami-software.png?size=128",
 };
 
 function ProjectMark({ item }: { item: DirectoryItem }) {
-  const repoOwner = item.repository_url?.match(/^https?:\/\/github\.com\/([^/]+)/)?.[1];
-  const src = projectLogoOverrides[item.project_slug] || item.owner_avatar_url || (repoOwner ? `https://github.com/${repoOwner}.png?size=88` : null);
+  const src = projectLogoOverrides[item.project_slug];
   if (src) {
-    return <img src={src} alt="" loading="lazy" className="size-11 shrink-0 rounded-xl border border-zinc-200 bg-white object-contain p-1 shadow-sm" />;
+    return <img src={src} alt={`${item.project_name} logo`} loading="lazy" className="size-11 shrink-0 rounded-xl border border-zinc-200 bg-white object-contain p-1 shadow-sm" />;
   }
   return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{item.project_name.slice(0, 2).toUpperCase()}</div>;
 }
