@@ -169,6 +169,13 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
   );
 }
 
+const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
+  { label: "ワークスペース・コラボレーション", categories: ["ワークスペース", "コミュニケーション", "ドキュメント管理", "AIチャット"] },
+  { label: "自動化・開発者向け", categories: ["自動化", "BaaS", "AIエージェント開発"] },
+  { label: "ビジネス・マーケティング", categories: ["CRM", "マーケティング", "分析", "BI", "メール配信"] },
+  { label: "業務・コンテンツ", categories: ["プロジェクト管理", "スケジューリング", "フォーム・アンケート", "写真管理", "メディアサーバー"] },
+];
+
 function HomePage() {
   usePageMeta("ossalt — OSS移行ナビ", "SaaSからOSSへの移行を、日本語で探し、比べ、判断する。移行難易度・ライセンス・運用負担まで比較できます。", "/");
   const items = useDirectoryItems();
@@ -176,10 +183,22 @@ function HomePage() {
   const [category, setCategory] = useState("すべて");
   const [selfHostOnly, setSelfHostOnly] = useState(false);
   const [collection, setCollection] = useState<"all" | "latest" | "active" | "easy">("all");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  const categories = useMemo(() => ["すべて", ...Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[])).slice(0, 9)], [items]);
+  const categoryGroups = useMemo(() => {
+    const present = Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]));
+    const grouped = new Set<string>();
+    const groups = CATEGORY_GROUPS
+      .map(group => ({ label: group.label, categories: group.categories.filter(name => present.includes(name)) }))
+      .filter(group => group.categories.length > 0);
+    groups.forEach(group => group.categories.forEach(name => grouped.add(name)));
+    const rest = present.filter(name => !grouped.has(name)).sort((a,b) => a.localeCompare(b, "ja"));
+    if (rest.length) groups.push({ label: "その他", categories: rest });
+    return groups;
+  }, [items]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(item => {
@@ -189,7 +208,10 @@ function HomePage() {
         (collection === "easy" && (item.migration_difficulty ?? 9) <= 2) ||
         (collection === "active" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45) ||
         (collection === "latest" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*120);
-      return (!q || text.includes(q)) && (category === "すべて" || item.category === category) && (!selfHostOnly || item.docker_available) && matchesCollection;
+      return (!q || text.includes(q)) &&
+        (category === "すべて" || item.category === category) &&
+        (!selfHostOnly || item.docker_available) &&
+        matchesCollection;
     });
   }, [items, query, category, selfHostOnly, collection]);
 
@@ -205,74 +227,113 @@ function HomePage() {
 
   return (
     <>
-      <section className="mx-auto max-w-7xl px-5 pb-14 pt-20 lg:px-8 lg:pt-28">
-        <div className="grid items-end gap-12 lg:grid-cols-[1.15fr_.85fr]">
-          <div>
-            <Badge className="border-violet-200 bg-violet-50 text-violet-700">OPEN SOURCE ALTERNATIVES, FOR JAPAN</Badge>
-            <h1 className="mt-6 max-w-4xl text-5xl font-extrabold leading-[1.02] tracking-[-0.06em] text-zinc-950 sm:text-6xl lg:text-7xl">
-              いつものSaaSに、<br/><span className="text-violet-600">もうひとつの選択肢を。</span>
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-zinc-600 lg:text-lg">SaaS名からOSS代替候補を探し、ライセンス・運用負担・移行難易度まで比較できます。</p>
-          </div>
-          <div>
-            <label className="flex h-16 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 shadow-xl shadow-zinc-200/40 focus-within:border-violet-400">
-              <Search size={20} className="text-zinc-400"/>
-              <input className="h-full flex-1 bg-transparent text-base outline-none placeholder:text-zinc-400" value={query} onChange={e => setQuery(e.target.value)} placeholder="Notion、Slack、Firebase..." />
-            </label>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {["Notion","Slack","Zapier","Firebase","Google Analytics"].map(name => <Button key={name} variant="outline" size="sm" onClick={() => setQuery(name)}>{name}</Button>)}
+      <section className="border-b border-zinc-200 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-12">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-2xl">
+              <Badge className="border-violet-200 bg-violet-50 text-violet-700">OPEN SOURCE ALTERNATIVES, FOR JAPAN</Badge>
+              <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-zinc-950 sm:text-4xl">
+                いつものSaaSに、<span className="text-violet-600">もうひとつの選択肢を。</span>
+              </h1>
+              <p className="mt-3 text-sm leading-7 text-zinc-500">SaaS名からOSS代替候補を探し、ライセンス・運用負担・移行難易度まで比較できます。</p>
+            </div>
+            <div className="w-full lg:w-[28rem]">
+              <label className="flex h-14 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 shadow-sm focus-within:border-violet-400">
+                <Search size={18} className="text-zinc-400"/>
+                <input className="h-full flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400" value={query} onChange={e => setQuery(e.target.value)} placeholder="Notion、Slack、Firebase..." />
+              </label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["Notion","Slack","Zapier","Firebase","Google Analytics"].map(name => <Button key={name} variant="outline" size="sm" onClick={() => setQuery(name)}>{name}</Button>)}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="mt-14 grid grid-cols-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
-          {[["SaaS",stats.products],["OSS候補",stats.projects],["レビュー済み",stats.verified]].map(([label,value],i) => <div key={label} className={`p-5 sm:p-6 ${i ? "border-l border-zinc-200" : ""}`}><b className="block text-2xl sm:text-3xl">{value}</b><span className="mt-1 block text-xs text-zinc-500">{label}</span></div>)}
+          <div className="mt-8 flex flex-wrap gap-x-8 gap-y-2 border-t border-zinc-100 pt-6 text-sm text-zinc-500">
+            <span><b className="text-zinc-950">{stats.products}</b> SaaS</span>
+            <span><b className="text-zinc-950">{stats.projects}</b> OSS候補</span>
+            <span><b className="text-zinc-950">{stats.verified}</b> レビュー済み</span>
+          </div>
         </div>
       </section>
 
-      <section className="border-y border-zinc-200 bg-zinc-950 text-white">
-        <div className="mx-auto max-w-7xl px-5 py-7 lg:px-8">
-          <p className="text-xs font-medium text-zinc-400">よく比較されるSaaS</p>
-          <div className="mt-4 flex flex-wrap gap-x-7 gap-y-3">
-            {["Notion","Slack","Zapier","Firebase","Google Analytics","Salesforce","Jira","Mailchimp"].map(name => <button key={name} onClick={() => {setQuery(name); document.getElementById("directory")?.scrollIntoView();}} className="text-sm font-semibold text-zinc-200 transition hover:text-violet-300">{name} <span className="text-zinc-600">→</span></button>)}
+      <section className="border-b border-zinc-200 bg-zinc-950 text-white">
+        <div className="mx-auto max-w-7xl px-5 py-5 lg:px-8">
+          <div className="flex flex-wrap gap-x-7 gap-y-3">
+            {["Notion","Slack","Zapier","Firebase","Google Analytics","Salesforce","Jira","Mailchimp"].map(name => <button key={name} onClick={() => { setQuery(name); document.getElementById("directory")?.scrollIntoView({behavior:"smooth"}); }} className="text-sm font-semibold text-zinc-300 transition hover:text-violet-300">{name} <span className="text-zinc-600">→</span></button>)}
           </div>
         </div>
       </section>
 
       <section id="collections" className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+        <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-            <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Collections</p><h2 className="mt-2 text-3xl font-bold tracking-tight">目的から探す</h2></div>
-            <p className="max-w-lg text-sm leading-7 text-zinc-500">サービス名が決まっていなくても、運用方針から候補を見つけられます。</p>
+            <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Collections</p><h2 className="mt-1 text-2xl font-bold tracking-tight">目的から探す</h2></div>
+            <Link to="/collections" className="text-sm font-medium text-violet-600">すべてのコレクションを見る →</Link>
           </div>
-          <div className="mt-7 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-3 md:grid-cols-4">
             {[
-              ["セルフホスト","自社環境で運用できる候補",() => {setSelfHostOnly(true);setCollection("all");}],
-              ["最近更新","最近コミットのあるOSS",() => {setSelfHostOnly(false);setCollection("latest");}],
-              ["活発に開発中","45日以内に更新された候補",() => {setSelfHostOnly(false);setCollection("active");}],
-            ].map(([title,body,action]) => <button key={title as string} onClick={action as () => void} className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-6 text-left transition hover:border-violet-300 hover:bg-violet-50/40">
-              <h3 className="text-lg font-bold">{title as string}</h3><p className="mt-2 text-sm text-zinc-500">{body as string}</p><ArrowUpRight className="mt-8 text-zinc-400 transition group-hover:text-violet-600" size={18}/>
+              ["セルフホスト","自社環境で運用",() => { setSelfHostOnly(true); setCollection("all"); }],
+              ["最近更新","120日以内に更新",() => { setSelfHostOnly(false); setCollection("latest"); }],
+              ["活発に開発中","45日以内に更新",() => { setSelfHostOnly(false); setCollection("active"); }],
+              ["移行しやすい","難易度2以下",() => { setSelfHostOnly(false); setCollection("easy"); }],
+            ].map(([title,body,action]) => <button key={title as string} onClick={() => { (action as () => void)(); document.getElementById("directory")?.scrollIntoView({behavior:"smooth"}); }} className="group rounded-2xl border border-zinc-200 bg-zinc-50 p-5 text-left transition hover:border-violet-300 hover:bg-violet-50/40">
+              <h3 className="font-bold">{title as string}</h3><p className="mt-1 text-xs text-zinc-500">{body as string}</p><ArrowUpRight className="mt-6 text-zinc-400 transition group-hover:text-violet-600" size={17}/>
             </button>)}
           </div>
         </div>
       </section>
 
-      <section id="directory" className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
-        <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-end">
-          <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Directory</p><h2 className="mt-2 text-4xl font-bold tracking-tight">OSS代替候補</h2><p className="mt-2 text-sm text-zinc-500">{visible.length} 件を表示中</p></div>
-          <div className="flex max-w-4xl flex-col gap-2 xl:items-end">
-            <div className="flex flex-wrap gap-2">
-              {(["all","latest","active","easy"] as const).map(key => <Button key={key} size="sm" variant={collection === key ? "default" : "outline"} onClick={() => setCollection(key)}>{key === "all" ? "すべて" : key === "latest" ? "最近更新" : key === "active" ? "Active" : "移行しやすい"}</Button>)}
-              <Button size="sm" variant={selfHostOnly ? "soft" : "outline"} onClick={() => setSelfHostOnly(v => !v)}><SlidersHorizontal size={13}/> セルフホスト</Button>
+      <section id="directory" className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+        <div className="flex items-end justify-between gap-4">
+          <div><p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600">Directory</p><h2 className="mt-1 text-3xl font-bold tracking-tight">OSS代替候補</h2><p className="mt-2 text-sm text-zinc-500">{visible.length} 件を表示中</p></div>
+          <button className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-700 lg:hidden" onClick={() => setFiltersOpen(v => !v)}><SlidersHorizontal size={14}/> フィルター</button>
+        </div>
+
+        <div className="mt-7 grid gap-8 lg:grid-cols-[220px_1fr]">
+          <aside className={`shrink-0 space-y-6 lg:block ${filtersOpen ? "block" : "hidden"}`}>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">コレクション</p>
+              <div className="mt-3 flex flex-col gap-1">
+                {([
+                  ["all","すべて"],
+                  ["latest","最近更新"],
+                  ["active","Active"],
+                  ["easy","移行しやすい"],
+                ] as const).map(([key,label]) => <button key={key} onClick={() => setCollection(key)} className={`rounded-lg px-3 py-2 text-left text-sm transition ${collection === key ? "bg-zinc-950 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>{label}</button>)}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">{categories.map(name => <Button key={name} size="sm" variant={category === name ? "soft" : "ghost"} onClick={() => setCategory(name)}>{name}</Button>)}</div>
+
+            <div className="border-t border-zinc-200 pt-5">
+              <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">カテゴリ</p>
+              <div className="mt-3 flex flex-col gap-1">
+                <button onClick={() => setCategory("すべて")} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === "すべて" ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>すべて</button>
+              </div>
+              <div className="mt-4 space-y-4">
+                {categoryGroups.map(group => <div key={group.label}>
+                  <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{group.label}</p>
+                  <div className="mt-1 flex flex-col gap-1">
+                    {group.categories.map(name => <button key={name} onClick={() => setCategory(name)} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === name ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>{name}</button>)}
+                  </div>
+                </div>)}
+              </div>
+            </div>
+
+            <div className="border-t border-zinc-200 pt-5">
+              <label className="flex items-center gap-2 text-sm text-zinc-600">
+                <input type="checkbox" checked={selfHostOnly} onChange={e => setSelfHostOnly(e.target.checked)} className="size-4 rounded border-zinc-300 text-violet-600 focus:ring-violet-500" />
+                セルフホストのみ
+              </label>
+            </div>
+          </aside>
+
+          <div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{pagedItems.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+            {pageCount > 1 && <div className="mt-10 flex items-center justify-center gap-3">
+              <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1,p-1))}>前へ</Button>
+              <span className="text-xs text-zinc-500">{page} / {pageCount}</span>
+              <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(p => Math.min(pageCount,p+1))}>次へ</Button>
+            </div>}
           </div>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{pagedItems.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
-        {pageCount > 1 && <div className="mt-10 flex items-center justify-center gap-3">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => Math.max(1,p-1))}>前へ</Button>
-          <span className="text-xs text-zinc-500">{page} / {pageCount}</span>
-          <Button variant="outline" size="sm" disabled={page === pageCount} onClick={() => setPage(p => Math.min(pageCount,p+1))}>次へ</Button>
-        </div>}
       </section>
 
       <section id="method" className="bg-zinc-950 text-white">
