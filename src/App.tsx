@@ -373,6 +373,39 @@ function ProjectPage() {
         </div>
       </div>
 
+      <div className="sticky top-16 z-30 -mx-5 border-b border-zinc-200 bg-[#f7f7f5]/95 px-5 py-3 backdrop-blur lg:mx-0 lg:rounded-xl lg:border lg:px-4">
+        <nav className="flex gap-5 overflow-x-auto whitespace-nowrap text-xs font-medium text-zinc-500">
+          <a href="#overview" className="hover:text-zinc-950">概要</a>
+          <a href="#fit" className="hover:text-zinc-950">向いている人</a>
+          <a href="#operations" className="hover:text-zinc-950">運用負担</a>
+          <a href="#alternatives" className="hover:text-zinc-950">代替SaaS</a>
+          <a href="#similar" className="hover:text-zinc-950">似ているOSS</a>
+        </nav>
+      </div>
+
+      <div className="mt-8 grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+        <Card className="border-zinc-900 bg-zinc-950 text-white">
+          <CardContent className="p-6">
+            <p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-300">Decision snapshot</p>
+            <h2 className="mt-3 text-2xl font-bold">{profile?.bestFor?.[0] ? `${profile.bestFor[0]}なら有力候補` : "導入条件を確認して判断"}</h2>
+            <p className="mt-3 text-sm leading-7 text-zinc-300">{profile?.operationsNote || item.migration_summary_ja || "機能だけでなく、運用負担と移行コストまで確認して判断してください。"}</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.docker_available ? "Self-hosted" : "Hosting要確認"}</Badge>
+              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.license_spdx || "License要確認"}</Badge>
+              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.last_commit_at ? relativeDate(item.last_commit_at) : "更新日要確認"}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Data freshness</p><h2 className="mt-2 text-xl font-bold">情報の鮮度</h2></CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">GitHub snapshot</span><b>{item.snapshot_observed_at ? relativeDate(item.snapshot_observed_at) : "未取得"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">公式情報確認</span><b>{item.source_checked_at ? relativeDate(item.source_checked_at) : "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">レビュー状態</span><b>{item.verification_state === "verified" ? "確認済み" : "要確認"}</b></div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <Card><CardContent><p className="text-xs text-zinc-400">Stars</p><p className="mt-2 text-2xl font-bold">{item.stars_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Forks</p><p className="mt-2 text-2xl font-bold">{item.forks_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
@@ -382,7 +415,7 @@ function ProjectPage() {
         <Card><CardContent><p className="text-xs text-zinc-400">Latest release</p><p className="mt-2 truncate text-lg font-bold">{item.latest_release_tag || "要確認"}</p></CardContent></Card>
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
+      <div id="overview" className="mt-8 scroll-mt-32 grid gap-4 lg:grid-cols-[1.15fr_.85fr]">
         <Card>
           <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Overview</p><h2 className="mt-2 text-3xl font-bold tracking-tight">このOSSについて</h2></CardHeader>
           <CardContent><p className="text-sm leading-8 text-zinc-600">{profile?.overview || item.short_description_ja}</p></CardContent>
@@ -401,7 +434,7 @@ function ProjectPage() {
         </Card>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
+      <div id="fit" className="mt-8 scroll-mt-32 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader><h2 className="text-2xl font-bold">向いているケース</h2></CardHeader>
           <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{(profile?.bestFor || item.strengths_ja || []).map(x => <li key={x}>✓ {x}</li>)}</ul></CardContent>
@@ -412,7 +445,7 @@ function ProjectPage() {
         </Card>
       </div>
 
-      <div className="mt-8 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
+      <div id="operations" className="mt-8 scroll-mt-32 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
         <Card>
           <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Operations</p><h2 className="mt-2 text-2xl font-bold">運用負担</h2></CardHeader>
           <CardContent className="space-y-5">
@@ -431,7 +464,7 @@ function ProjectPage() {
         </Card>
       </div>
 
-      <div className="mt-10">
+      <div id="alternatives" className="mt-10 scroll-mt-32">
         <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Alternative to</p><h2 className="mt-2 text-3xl font-bold">代替できるSaaS</h2></div></div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {relatedProducts.map(rel => <Link key={rel.product_slug} to={`/alternatives/${rel.product_slug}`} className="group rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-violet-300 hover:shadow-md">
@@ -440,7 +473,7 @@ function ProjectPage() {
         </div>
       </div>
 
-      {similarProjects.length > 0 && <div className="mt-12 border-t border-zinc-200 pt-10">
+      {similarProjects.length > 0 && <div id="similar" className="mt-12 scroll-mt-32 border-t border-zinc-200 pt-10">
         <div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Similar projects</p><h2 className="mt-2 text-3xl font-bold">似ているOSS</h2><p className="mt-2 text-sm text-zinc-500">同じカテゴリで比較されやすい候補です。</p></div>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{similarProjects.map(project => <DirectoryCard key={project.relation_id} item={project}/>)}</div>
       </div>}
@@ -472,11 +505,11 @@ function AlternativesPage() {
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] bg-zinc-50 px-4 py-3 text-[10px] uppercase tracking-wider text-zinc-400"><span>候補</span><span>難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
-        {candidates.map(item => <div key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></div>)}
+        {candidates.map(item => <Link to={`/projects/${item.project_slug}`} key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm transition hover:bg-violet-50/50"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></Link>)}
       </div>
 
       <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Card key={item.relation_id}>
-        <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><h2 className="mt-1 text-3xl font-bold">{item.project_name}</h2><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
+        <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><Link to={`/projects/${item.project_slug}`} className="mt-1 inline-flex items-center gap-2 text-3xl font-bold hover:text-violet-600">{item.project_name}<ArrowUpRight size={18}/></Link><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
         <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
         <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}</CardFooter>
       </Card>)}</div>
