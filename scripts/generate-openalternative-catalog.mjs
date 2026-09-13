@@ -2,69 +2,65 @@ import fs from "node:fs";
 
 const SOURCE =
   "https://raw.githubusercontent.com/piotrkulpinski/open-source-alternatives/main/README.md";
-const OUTPUT = new URL("../docs/openalternative-catalog.md", import.meta.url);
 
-const response = await fetch(SOURCE);
-if (!response.ok) {
-  throw new Error(`Failed to fetch upstream README: ${response.status}`);
-}
+const res = await fetch(SOURCE, {
+  headers: { "User-Agent": "ossalt-next-catalog-generator" },
+});
+if (!res.ok) throw new Error(`Failed to fetch upstream README: ${res.status}`);
 
-const markdown = await response.text();
-const lines = markdown.split("\n");
+const markdown = await res.text();
+const lines = markdown.split(/\r?\n/);
+
 const excluded = new Set(["Sponsors", "Contents", "Contributing", "Footnotes"]);
-
-const sections = [];
-let currentMajor = null;
-let currentSub = null;
+const majors = new Map();
+let major = null;
+let sub = null;
 
 for (const line of lines) {
   if (line.startsWith("## ")) {
     const title = line.slice(3).trim();
-    currentMajor = excluded.has(title) ? null : title;
-    currentSub = null;
-    if (currentMajor) sections.push({ level: 2, title: currentMajor, parent: null, items: [] });
+    major = excluded.has(title) ? null : title;
+    sub = null;
+    if (major && !majors.has(major)) majors.set(major, new Map());
     continue;
   }
 
   if (line.startsWith("### ")) {
-    if (!currentMajor) continue;
-    currentSub = line.slice(4).trim();
-    sections.push({ level: 3, title: currentSub, parent: currentMajor, items: [] });
+    if (!major) continue;
+    sub = line.slice(4).trim();
+    const subMap = majors.get(major);
+    if (!subMap.has(sub)) subMap.set(sub, []);
     continue;
   }
 
-  if (!currentMajor || !line.startsWith("- ")) continue;
+  if (!major || !sub || !line.startsWith("- ")) continue;
 
   const match = line.match(
-    /^- \*{0,2}\[([^\]]+)\]\((https?:\/\/[^)]+)\)\*{0,2}\s*-\s*(.*)$/,
+    /^-\s+(?:\*\*)?\[([^\]]+)\]\((https:\/\/openalternative\.co\/[^)]+)\)(?:\*\*)?\s+-\s+(.+)$/,
   );
   if (!match) continue;
 
-  const [, rawName, url, rest] = match;
-  const licenseMatch = rest.match(
-    /`([^`]*?(?:MIT|GPL|AGPL|Apache|BSD|MPL|Elastic|SSPL|FSL|ISC|Unlicense|other)[^`]*)`/i,
-  );
-  const starsMatch = rest.match(/`⭐\s*([^`]+)`/);
+  const [, rawName, sourceUrl, tail] = match;
+  const hints = [...tail.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim());
 
-  const item = {
+  majors.get(major).get(sub).push({
     name: rawName.trim(),
-    url,
-    license: licenseMatch?.[1]?.trim() ?? null,
-    stars: starsMatch?.[1]?.trim() ?? null,
-  };
-
-  const target =
-    currentSub
-      ? [...sections].reverse().find((section) => section.level === 3 && section.title === currentSub && section.parent === currentMajor)
-      : [...sections].reverse().find((section) => section.level === 2 && section.title === currentMajor);
-
-  target?.items.push(item);
+    sourceUrl,
+    license: hints.find((hint) => !hint.startsWith("⭐")) ?? null,
+    stars: hints.find((hint) => hint.startsWith("⭐"))?.replace(/^⭐\s*/, "") ?? null,
+  });
 }
 
-const majorSections = sections.filter((section) => section.level === 2);
-const subSections = sections.filter((section) => section.level === 3);
-const uniqueProjects = new Set(sections.flatMap((section) => section.items.map((item) => item.name)));
-const listedEntries = sections.reduce((sum, section) => sum + section.items.length, 0);
+const unique = new Set();
+let listed = 0;
+for (const subMap of majors.values()) {
+  for (const items of subMap.values()) {
+    for (const item of items) {
+      listed += 1;
+      unique.add(item.sourceUrl);
+    }
+  }
+}
 
 const anchor = (value) =>
   value
@@ -73,54 +69,56 @@ const anchor = (value) =>
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-|-$/g, "");
 
-let output = `# OpenAlternative Full Catalog
+let out = `# OpenAlternative Candidate Catalog
 
 OpenAlternative の公開 README を、ossalt の候補レビュー用に整理したカタログです。
 
 - Source: ${SOURCE}
-- Major categories: **${majorSections.length}**
-- Subcategories: **${subSections.length}**
-- Listed entries: **${listedEntries}**
-- Unique project names: **${uniqueProjects.size}**
+- Major categories: **${majors.size}**
+- Listed entries: **${listed}**
+- Unique projects: **${unique.size}**
 
-> 同じOSSが複数カテゴリに掲載される場合は、そのカテゴリごとに残します。説明文は転載せず、候補名・掲載先・ライセンス・Starsなどの事実情報だけを整理します。
+> 候補探索用の一覧です。ossalt 本体へ掲載する前に、公式情報・ライセンス・代替関係・移行上の注意を個別レビューします。
 
 ## Contents
 
 `;
 
-for (const major of majorSections) {
-  output += `- [${major.title}](#${anchor(major.title)})\n`;
-  for (const sub of subSections.filter((section) => section.parent === major.title)) {
-    output += `  - [${sub.title}](#${anchor(sub.title)})\n`;
+for (const [majorTitle, subMap] of majors) {
+  out += `- [${majorTitle}](#${anchor(majorTitle)})\n`;
+  for (const subTitle of subMap.keys()) {
+    out += `  - [${subTitle}](#${anchor(subTitle)})\n`;
   }
 }
 
-output += "\n";
+out += "\n";
 
-for (const major of majorSections) {
-  output += `## ${major.title}\n\n`;
+for (const [majorTitle, subMap] of majors) {
+  out += `## ${majorTitle}\n\n`;
 
-  for (const item of major.items) {
-    output += `- [${item.name}](${item.url})${item.license ? ` · \`${item.license}\`` : ""}${item.stars ? ` · ⭐ ${item.stars}` : ""}\n`;
-  }
+  for (const [subTitle, items] of subMap) {
+    out += `### ${subTitle}\n\n`;
 
-  if (major.items.length) output += "\n";
+    const sorted = [...items].sort((a, b) =>
+      a.name.localeCompare(b.name, "en", { sensitivity: "base" }),
+    );
 
-  for (const sub of subSections.filter((section) => section.parent === major.title)) {
-    output += `### ${sub.title}\n\n`;
-
-    for (const item of sub.items) {
-      output += `- [${item.name}](${item.url})${item.license ? ` · \`${item.license}\`` : ""}${item.stars ? ` · ⭐ ${item.stars}` : ""}\n`;
+    for (const item of sorted) {
+      const license = item.license ? ` · \`${item.license}\`` : "";
+      const stars = item.stars ? ` · ⭐ ${item.stars}` : "";
+      out += `- [${item.name}](${item.sourceUrl})${license}${stars}\n`;
     }
 
-    output += "\n";
+    out += "\n";
   }
 }
 
-output += `---\n\nGenerated from the upstream README for candidate discovery. Review official sources before publishing a project on ossalt.\n`;
+out += `---\n\nGenerated from the upstream public README for candidate discovery. Project descriptions are intentionally omitted.\n`;
 
-fs.writeFileSync(OUTPUT, output);
+const output = new URL("../docs/openalternative-catalog.md", import.meta.url);
+fs.mkdirSync(new URL("../docs/", import.meta.url), { recursive: true });
+fs.writeFileSync(output, out);
+
 console.log(
-  `Generated OpenAlternative catalog: ${listedEntries} entries / ${uniqueProjects.size} unique names / ${subSections.length} subcategories`,
+  `Generated ${listed} entries across ${majors.size} major categories (${unique.size} unique projects).`,
 );
