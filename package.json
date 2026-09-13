@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "import:openalternative": "node scripts/import-openalternative-candidates.mjs",
     "review:candidate": "node scripts/review-import-candidate.mjs",
-    "sync:github-snapshots": "node scripts/sync-github-snapshots.mjs"
+    "sync:github-snapshots": "node scripts/sync-github-snapshots.mjs",
+    "generate:readme": "node scripts/generate-readme.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
