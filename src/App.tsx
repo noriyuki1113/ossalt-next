@@ -445,6 +445,21 @@ function ProjectPage() {
         </Card>
       </div>
 
+      {profile && <div className="mt-8 grid gap-4 lg:grid-cols-3">
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Features</p><h2 className="mt-2 text-2xl font-bold">主な機能</h2></CardHeader>
+          <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{profile.features.map(x => <li key={x}>• {x}</li>)}</ul></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Technical notes</p><h2 className="mt-2 text-2xl font-bold">技術的な確認点</h2></CardHeader>
+          <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{profile.technicalNotes.map(x => <li key={x}>• {x}</li>)}</ul></CardContent>
+        </Card>
+        <Card>
+          <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Migration notes</p><h2 className="mt-2 text-2xl font-bold">移行時の注意</h2></CardHeader>
+          <CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{profile.migrationNotes.map(x => <li key={x}>• {x}</li>)}</ul></CardContent>
+        </Card>
+      </div>}
+
       <div id="operations" className="mt-8 scroll-mt-32 grid gap-4 lg:grid-cols-[.85fr_1.15fr]">
         <Card>
           <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Operations</p><h2 className="mt-2 text-2xl font-bold">運用負担</h2></CardHeader>
