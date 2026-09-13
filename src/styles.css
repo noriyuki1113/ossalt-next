@@ -39,3 +39,100 @@ input {
   background: #ddd6fe;
   color: #18181b;
 }
+
+
+/* Motion system inspired by transitions.dev interaction patterns.
+   Implemented locally so ossalt keeps a small, dependency-free runtime. */
+:root {
+  --motion-fast: 160ms;
+  --motion-base: 240ms;
+  --motion-slow: 360ms;
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-card {
+  transition:
+    transform var(--motion-base) var(--motion-spring),
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-base) var(--motion-ease);
+  will-change: transform;
+}
+
+.motion-card:hover {
+  transform: translateY(-3px);
+}
+
+.motion-arrow {
+  transition: transform var(--motion-base) var(--motion-spring);
+}
+
+.group:hover .motion-arrow {
+  transform: translate(3px, -3px);
+}
+
+.motion-panel {
+  transform-origin: top center;
+  animation: panel-reveal var(--motion-base) var(--motion-spring) both;
+}
+
+.motion-fade-up {
+  animation: fade-up var(--motion-slow) var(--motion-spring) both;
+}
+
+.motion-result {
+  animation: result-enter var(--motion-base) var(--motion-spring) both;
+}
+
+@keyframes panel-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes result-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-card:hover,
+  .group:hover .motion-arrow {
+    transform: none;
+  }
+}
