@@ -3,6 +3,10 @@ export type DirectoryItem = {
   product_slug: string;
   product_name: string;
   product_name_ja: string | null;
+  product_plan_name?: string | null;
+  product_monthly_price_jpy?: number | null;
+  product_pricing_source_url?: string | null;
+  product_pricing_checked_at?: string | null;
   project_id: string;
   project_slug: string;
   project_name: string;

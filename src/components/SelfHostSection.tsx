@@ -3,63 +3,7 @@ import { ArrowUpRight, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
-import type { ToolSelfhostGuide, VpsProvider } from "@/lib/types";
-
-type GuideWithProvider = ToolSelfhostGuide & { provider: VpsProvider };
-
-const METHOD_LABEL: Record<string, string> = {
-  startup_script: "ワンクリック",
-  docker_compose: "Docker",
-  manual: "手動",
-};
-
-// steps_md is plain admin-authored Markdown (one step per line, "- " / "1. " / bare
-// lines all accepted). Rendered as plain text — never dangerouslySetInnerHTML — so no
-// HTML from the field can execute, and the same list feeds the HowTo JSON-LD below.
-function parseSteps(md: string): string[] {
-  return md
-    .split("\n")
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => line.replace(/^[-*]\s+/, "").replace(/^\d+[.)]\s+/, "").replace(/^#+\s+/, "").trim())
-    .filter(Boolean);
-}
-
-function useSelfhostGuides(toolId: string) {
-  const [guides, setGuides] = useState<GuideWithProvider[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setGuides(null);
-    if (!supabase) {
-      setGuides([]);
-      return;
-    }
-    supabase
-      .from("tool_selfhost_guides")
-      .select("*, provider:vps_providers(*)")
-      .eq("tool_id", toolId)
-      .eq("status", "published")
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data) {
-          setGuides([]);
-          return;
-        }
-        const rows = (data as unknown as GuideWithProvider[])
-          .filter(row => row.provider && row.provider.is_active)
-          // Fixed price-ascending order — never by affiliate payout.
-          .sort((a, b) => a.provider.min_monthly_jpy - b.provider.min_monthly_jpy);
-        setGuides(rows);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [toolId]);
-
-  return guides;
-}
+import { SELFHOST_METHOD_LABEL, parseSelfhostSteps, useSelfhostGuides, type GuideWithProvider } from "@/lib/selfhost";
 
 function useHowToJsonLd(toolName: string, guides: GuideWithProvider[]) {
   useEffect(() => {
@@ -71,8 +15,8 @@ function useHowToJsonLd(toolName: string, guides: GuideWithProvider[]) {
 
     const graph = guides.map(guide => ({
       "@type": "HowTo",
-      name: `${toolName}を${guide.provider.name}で動かす（${METHOD_LABEL[guide.method] ?? guide.method}）`,
-      step: parseSteps(guide.steps_md).map((text, index) => ({
+      name: `${toolName}を${guide.provider.name}で動かす（${SELFHOST_METHOD_LABEL[guide.method] ?? guide.method}）`,
+      step: parseSelfhostSteps(guide.steps_md).map((text, index) => ({
         "@type": "HowToStep",
         position: index + 1,
         text,
@@ -96,7 +40,7 @@ function useHowToJsonLd(toolName: string, guides: GuideWithProvider[]) {
 
 function GuideCard({ toolId, guide }: { toolId: string; guide: GuideWithProvider }) {
   const [open, setOpen] = useState(false);
-  const steps = parseSteps(guide.steps_md);
+  const steps = parseSelfhostSteps(guide.steps_md);
   const outboundHref = `/api/out?p=${encodeURIComponent(guide.provider.slug)}&t=${encodeURIComponent(toolId)}&from=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`;
 
   return (
@@ -106,7 +50,7 @@ function GuideCard({ toolId, guide }: { toolId: string; guide: GuideWithProvider
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-bold">{guide.provider.name}</h3>
-              <Badge>{METHOD_LABEL[guide.method] ?? guide.method}</Badge>
+              <Badge>{SELFHOST_METHOD_LABEL[guide.method] ?? guide.method}</Badge>
             </div>
             <p className="mt-1 text-sm text-zinc-500">推奨メモリ {guide.recommended_memory_gb != null ? `${guide.recommended_memory_gb}GB〜` : "公式要件未記載"}</p>
           </div>
