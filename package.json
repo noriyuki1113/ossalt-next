@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.mjs",
     "preview": "vite preview",
     "import:openalternative": "node scripts/import-openalternative-candidates.mjs",
     "review:candidate": "node scripts/review-import-candidate.mjs",

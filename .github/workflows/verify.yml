@@ -21,4 +21,5 @@ jobs:
           node --check scripts/sync-github-snapshots.mjs
           node --check scripts/generate-readme.mjs
           node --check scripts/generate-openalternative-catalog.mjs
+          node --check scripts/prerender.mjs
       - run: npm run build

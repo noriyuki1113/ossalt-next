@@ -24,6 +24,8 @@ Run the same workflow with `approve` and provide:
 
 Approval publishes/updates the project, creates a verified alternative relation, records official-site/repository evidence, and marks the staging candidate as `enriched`.
 
+The project's primary category is set from the candidate's OpenAlternative subcategory (e.g. `CRM & Sales`) by matching it against `public.categories.aliases`. If nothing matches, the project is left uncategorized and the job logs a warning — add the English name to the right category's `aliases` (or link the project in `public.project_categories` directly) and it will be picked up.
+
 ## Reject
 
 Run with `reject` and the candidate UUID. The candidate is marked `rejected` with reviewer and timestamp.

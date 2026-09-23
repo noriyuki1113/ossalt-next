@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import type { ToolSelfhostGuide, VpsProvider } from "@/lib/types";
-
-export type GuideWithProvider = ToolSelfhostGuide & { provider: VpsProvider };
+import { useMemo } from "react";
+import { useSiteData } from "@/lib/site-context";
+import type { ToolSelfhostGuide } from "@/lib/types";
 
 export const SELFHOST_METHOD_LABEL: Record<string, string> = {
   startup_script: "ワンクリック",
@@ -22,37 +20,8 @@ export function parseSelfhostSteps(md: string): string[] {
     .filter(Boolean);
 }
 
-export function useSelfhostGuides(toolId: string) {
-  const [guides, setGuides] = useState<GuideWithProvider[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setGuides(null);
-    if (!supabase) {
-      setGuides([]);
-      return;
-    }
-    supabase
-      .from("tool_selfhost_guides")
-      .select("*, provider:vps_providers(*)")
-      .eq("tool_id", toolId)
-      .eq("status", "published")
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data) {
-          setGuides([]);
-          return;
-        }
-        const rows = (data as unknown as GuideWithProvider[])
-          .filter(row => row.provider && row.provider.is_active)
-          // Fixed price-ascending order — never by affiliate payout.
-          .sort((a, b) => a.provider.min_monthly_jpy - b.provider.min_monthly_jpy);
-        setGuides(rows);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [toolId]);
-
-  return guides;
+// Published guides for one tool, already in fixed price-ascending order (see fetchSiteData).
+export function useSelfhostGuides(toolId: string): ToolSelfhostGuide[] {
+  const { guides } = useSiteData();
+  return useMemo(() => guides.filter(guide => guide.tool_id === toolId), [guides, toolId]);
 }

@@ -38,6 +38,33 @@ function assertHttps(value, label) {
   if (url.protocol !== "https:") throw new Error(`${label} must use https://`);
 }
 
+// `ref` may be a category slug, its Japanese name, or an alias (aliases include
+// OpenAlternative's English subcategory names, e.g. "CRM & Sales").
+async function setPrimaryCategory(projectId, ref) {
+  if (!ref) {
+    console.warn("No category given; project left uncategorized.");
+    return null;
+  }
+  const { data: categories, error } = await withRetry("Load categories", () => supabase.from("categories").select("id,slug,name_ja,aliases"));
+  if (error) throw error;
+  const match = categories.find((c) => c.slug === ref || c.name_ja === ref || (c.aliases || []).includes(ref));
+  if (!match) {
+    console.warn(`Category "${ref}" matches no category slug, name, or alias; project left uncategorized.`);
+    return null;
+  }
+  const { error: clearError } = await withRetry("Clear previous primary category", () => supabase
+    .from("project_categories")
+    .update({ is_primary: false })
+    .eq("project_id", projectId)
+    .neq("category_id", match.id));
+  if (clearError) throw clearError;
+  const { error: linkError } = await withRetry("Link primary category", () => supabase
+    .from("project_categories")
+    .upsert({ project_id: projectId, category_id: match.id, is_primary: true }, { onConflict: "project_id,category_id" }));
+  if (linkError) throw linkError;
+  return match;
+}
+
 async function writeSummary(markdown) {
   if (process.env.GITHUB_STEP_SUMMARY) {
     await appendFile(process.env.GITHUB_STEP_SUMMARY, markdown);
@@ -147,7 +174,6 @@ async function promoteBatch() {
         .upsert({
           slug: record.project.slug,
           name: record.project.name,
-          category: record.project.category,
           short_description_ja: record.project.short_description_ja,
           official_url: record.project.official_url,
           repository_url: record.project.repository_url,
@@ -162,6 +188,7 @@ async function promoteBatch() {
         .single(),
     );
     if (projectError) throw projectError;
+    await setPrimaryCategory(project.id, record.project.category);
 
     const { data: relation, error: relationError } = await withRetry(
       "Upsert relation",
@@ -284,7 +311,6 @@ async function approve() {
     slug: projectSlug,
     name: candidate.name,
     short_description_ja: shortDescriptionJa,
-    category,
     official_url: officialUrl,
     repository_url: repositoryUrl,
     license_spdx: licenseSpdx,
@@ -301,6 +327,7 @@ async function approve() {
     .select("id,slug,name")
     .single();
   if (projectError) throw projectError;
+  await setPrimaryCategory(project.id, category);
 
   const { data: relation, error: relationError } = await supabase
     .from("alternative_relations")
