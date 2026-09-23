@@ -1,57 +1,24 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
-import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, CircleDot, Clock3, GitFork, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
+import { Link, Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, CircleDot, Clock3, GitFork, Github, Menu, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/lib/supabase";
-import { fallbackItems } from "@/lib/fallback-data";
 import { productGuides } from "@/lib/product-guides";
 import { projectProfiles } from "@/lib/project-profiles";
 import { SelfHostSection } from "@/components/SelfHostSection";
+import { usePageMeta } from "@/lib/head";
 import { SELFHOST_METHOD_LABEL, parseSelfhostSteps, useSelfhostGuides } from "@/lib/selfhost";
-import type { DirectoryItem } from "@/lib/types";
+import { useDirectoryItems, useReferenceNow, useSiteData } from "@/lib/site-context";
+import { buildCategoryTree, categoryScope, daysSince, itemInCategories, uniqueByProject } from "@/lib/site-data";
+import type { DirectoryItem, License } from "@/lib/types";
 
-const SITE_URL = "https://ossalt-next.vercel.app";
+const LICENSE_KIND_LABEL = { osi: "OSS（OSI承認）", source_available: "ソース公開（OSSではない）" } as const;
+const COPYLEFT_LABEL = { none: "コピーレフトなし（寛容型）", weak: "弱いコピーレフト", strong: "強いコピーレフト", network: "ネットワーク越しの提供にも及ぶコピーレフト" } as const;
 
-function usePageMeta(title: string, description: string, path = "/") {
-  useEffect(() => {
-    document.title = title;
-    let descriptionMeta = document.querySelector('meta[name="description"]');
-    if (!descriptionMeta) {
-      descriptionMeta = document.createElement("meta");
-      descriptionMeta.setAttribute("name", "description");
-      document.head.appendChild(descriptionMeta);
-    }
-    descriptionMeta.setAttribute("content", description);
-
-    let canonical = document.querySelector('link[rel="canonical"]');
-    if (!canonical) {
-      canonical = document.createElement("link");
-      canonical.setAttribute("rel", "canonical");
-      document.head.appendChild(canonical);
-    }
-    canonical.setAttribute("href", `${SITE_URL}${path}`);
-
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    const ogDescription = document.querySelector('meta[property="og:description"]');
-    const ogUrl = document.querySelector('meta[property="og:url"]');
-    ogTitle?.setAttribute("content", title);
-    ogDescription?.setAttribute("content", description);
-    ogUrl?.setAttribute("content", `${SITE_URL}${path}`);
-  }, [title, description, path]);
-}
-
-function useDirectoryItems() {
-  const [items, setItems] = useState<DirectoryItem[]>(fallbackItems);
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.from("published_alternative_directory").select("*").order("product_name").then(({ data, error }) => {
-      if (!error && data?.length) setItems(data as DirectoryItem[]);
-    });
-  }, []);
-  return items;
+function isActiveWithin(item: DirectoryItem, now: number, days: number) {
+  const age = daysSince(item.last_commit_at, now);
+  return age !== null && age < days;
 }
 
 function Header() {
@@ -66,6 +33,7 @@ function Header() {
         <nav className="hidden items-center gap-7 text-sm text-zinc-600 md:flex">
           <Link className="hover:text-zinc-950" to="/categories">カテゴリ</Link>
           <Link className="hover:text-zinc-950" to="/collections">コレクション</Link>
+          <Link className="hover:text-zinc-950" to="/licenses">ライセンス</Link>
           <a className="hover:text-zinc-950" href="/#method">選び方</a>
           <a className="inline-flex items-center gap-1.5 hover:text-zinc-950" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer"><Github size={15}/> GitHub</a>
         </nav>
@@ -73,7 +41,7 @@ function Header() {
       </div>
       {open && <div className="motion-panel border-t border-zinc-200 bg-white px-5 py-4 md:hidden">
         <div className="flex flex-col gap-4 text-sm text-zinc-700">
-          <Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link><a href="/#method">選び方</a>
+          <Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link><Link to="/licenses">ライセンス</Link><a href="/#method">選び方</a>
         </div>
       </div>}
     </header>
@@ -85,9 +53,9 @@ function TrustMark({ item }: { item: DirectoryItem }) {
   return <Badge className={verified ? "border-emerald-200 bg-emerald-50 text-emerald-700" : ""}><CheckCircle2 size={12}/>{verified ? "確認済み" : "要確認"}</Badge>;
 }
 
-function relativeDate(value: string | null) {
-  if (!value) return "更新日不明";
-  const days = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 86400000));
+function relativeDate(value: string | null, now: number) {
+  const days = daysSince(value, now);
+  if (days === null) return "更新日不明";
   if (days === 0) return "今日更新";
   if (days === 1) return "昨日更新";
   if (days < 30) return `${days}日前`;
@@ -127,7 +95,13 @@ function ProjectMark({ item }: { item: DirectoryItem }) {
   return <div className="grid size-11 shrink-0 place-items-center rounded-xl border border-zinc-200 bg-gradient-to-br from-white to-zinc-100 text-sm font-extrabold text-zinc-700 shadow-sm">{item.project_name.slice(0, 2).toUpperCase()}</div>;
 }
 
+function LicenseValue({ item }: { item: DirectoryItem }) {
+  if (!item.license_spdx) return <>要確認</>;
+  return <>{item.license_spdx}{item.license_kind === "source_available" && <span className="ml-1 text-amber-600" title={LICENSE_KIND_LABEL.source_available}>*</span>}</>;
+}
+
 function DirectoryCard({ item }: { item: DirectoryItem }) {
+  const now = useReferenceNow();
   return (
     <Card className="motion-card group relative flex h-full cursor-pointer flex-col overflow-hidden hover:border-violet-300 hover:shadow-lg hover:shadow-zinc-200/50">
       <Link
@@ -148,7 +122,7 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
         <p className="text-sm leading-7 text-zinc-600">{item.short_description_ja}</p>
         <div className="mt-5 grid grid-cols-3 gap-2">
           <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">移行難易度</span><b className="mt-1 block text-sm">{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</b></div>
-          <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">ライセンス</span><b className="mt-1 block truncate text-sm">{item.license_spdx || "要確認"}</b></div>
+          <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">ライセンス</span><b className="mt-1 block truncate text-sm"><LicenseValue item={item}/></b></div>
           <div className="rounded-xl bg-zinc-50 p-3"><span className="block text-[10px] text-zinc-400">セルフホスト</span><b className="mt-1 block text-sm">{item.docker_available ? "対応" : "要確認"}</b></div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -159,8 +133,8 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
           {item.stars_count != null && <span className="inline-flex items-center gap-1"><Star size={12}/>{item.stars_count.toLocaleString()}</span>}
           {item.forks_count != null && <span className="inline-flex items-center gap-1"><GitFork size={12}/>{item.forks_count.toLocaleString()}</span>}
           {item.open_issues_count != null && <span className="inline-flex items-center gap-1"><CircleDot size={12}/>{item.open_issues_count.toLocaleString()}</span>}
-          <span className="inline-flex items-center gap-1"><Clock3 size={12}/>{relativeDate(item.last_commit_at)}</span>
-          {item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 && <span className="inline-flex items-center gap-1 text-emerald-600"><Activity size={12}/>Active</span>}
+          <span className="inline-flex items-center gap-1"><Clock3 size={12}/>{relativeDate(item.last_commit_at, now)}</span>
+          {isActiveWithin(item, now, 45) && <span className="inline-flex items-center gap-1 text-emerald-600"><Activity size={12}/>Active</span>}
         </div>
       </CardContent>
       <CardFooter className="relative z-10 gap-2 border-t border-zinc-100 pt-4 pointer-events-none">
@@ -171,35 +145,22 @@ function DirectoryCard({ item }: { item: DirectoryItem }) {
   );
 }
 
-const CATEGORY_GROUPS: { label: string; categories: string[] }[] = [
-  { label: "ワークスペース・コラボレーション", categories: ["ワークスペース", "コミュニケーション", "ドキュメント管理", "AIチャット"] },
-  { label: "自動化・開発者向け", categories: ["自動化", "BaaS", "AIエージェント開発"] },
-  { label: "ビジネス・マーケティング", categories: ["CRM", "マーケティング", "分析", "BI", "メール配信"] },
-  { label: "業務・コンテンツ", categories: ["プロジェクト管理", "スケジューリング", "フォーム・アンケート", "写真管理", "メディアサーバー"] },
-];
-
 function HomePage() {
   usePageMeta("ossalt — OSS移行ナビ", "SaaSからOSSへの移行を、日本語で探し、比べ、判断する。移行難易度・ライセンス・運用負担まで比較できます。", "/");
-  const items = useDirectoryItems();
+  const { items, categories } = useSiteData();
+  const now = useReferenceNow();
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("すべて");
+  const [category, setCategory] = useState("all");
   const [selfHostOnly, setSelfHostOnly] = useState(false);
   const [collection, setCollection] = useState<"all" | "latest" | "active" | "easy">("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
-  const categoryGroups = useMemo(() => {
-    const present = Array.from(new Set(items.map(i => i.category).filter(Boolean) as string[]));
-    const grouped = new Set<string>();
-    const groups = CATEGORY_GROUPS
-      .map(group => ({ label: group.label, categories: group.categories.filter(name => present.includes(name)) }))
-      .filter(group => group.categories.length > 0);
-    groups.forEach(group => group.categories.forEach(name => grouped.add(name)));
-    const rest = present.filter(name => !grouped.has(name)).sort((a,b) => a.localeCompare(b, "ja"));
-    if (rest.length) groups.push({ label: "その他", categories: rest });
-    return groups;
-  }, [items]);
+  // Only show categories that currently have at least one listed project.
+  const categoryGroups = useMemo(() => buildCategoryTree(categories)
+    .map(parent => ({ ...parent, children: parent.children.filter(child => items.some(item => itemInCategories(item, [child.slug]))) }))
+    .filter(parent => parent.children.length > 0), [categories, items]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -208,14 +169,14 @@ function HomePage() {
       const matchesCollection =
         collection === "all" ||
         (collection === "easy" && (item.migration_difficulty ?? 9) <= 2) ||
-        (collection === "active" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45) ||
-        (collection === "latest" && !!item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*120);
+        (collection === "active" && isActiveWithin(item, now, 45)) ||
+        (collection === "latest" && isActiveWithin(item, now, 120));
       return (!q || text.includes(q)) &&
-        (category === "すべて" || item.category === category) &&
+        (category === "all" || itemInCategories(item, [category])) &&
         (!selfHostOnly || item.docker_available) &&
         matchesCollection;
     });
-  }, [items, query, category, selfHostOnly, collection]);
+  }, [items, query, category, selfHostOnly, collection, now]);
 
   useEffect(() => { setPage(1); }, [query, category, selfHostOnly, collection]);
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
@@ -307,13 +268,13 @@ function HomePage() {
             <div className="border-t border-zinc-200 pt-5">
               <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">カテゴリ</p>
               <div className="mt-3 flex flex-col gap-1">
-                <button onClick={() => setCategory("すべて")} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === "すべて" ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>すべて</button>
+                <button onClick={() => setCategory("all")} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === "all" ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>すべて</button>
               </div>
               <div className="mt-4 space-y-4">
-                {categoryGroups.map(group => <div key={group.label}>
-                  <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{group.label}</p>
+                {categoryGroups.map(group => <div key={group.slug}>
+                  <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-400">{group.name_ja}</p>
                   <div className="mt-1 flex flex-col gap-1">
-                    {group.categories.map(name => <button key={name} onClick={() => setCategory(name)} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === name ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>{name}</button>)}
+                    {group.children.map(child => <button key={child.slug} onClick={() => setCategory(child.slug)} className={`rounded-lg px-3 py-2 text-left text-sm transition ${category === child.slug ? "bg-violet-600 text-white" : "text-zinc-600 hover:bg-zinc-100"}`}>{child.name_ja}</button>)}
                   </div>
                 </div>)}
               </div>
@@ -363,10 +324,17 @@ function DiscoveryCard({ title, description, count, to }: { title: string; descr
 
 function CategoriesPage() {
   usePageMeta("OSSカテゴリ一覧 | ossalt", "用途・カテゴリからオープンソース代替候補を探せます。", "/categories");
-  const items = useDirectoryItems();
-  const groups = Array.from(new Map(
-    items.filter(i => i.category).map(i => [i.category!, items.filter(x => x.category === i.category)])
-  ).entries()).sort((a,b) => b[1].length - a[1].length);
+  const { items, categories } = useSiteData();
+  const projects = uniqueByProject(items);
+  const tree = buildCategoryTree(categories)
+    .map(parent => ({
+      ...parent,
+      count: projects.filter(item => itemInCategories(item, categoryScope(parent, categories))).length,
+      children: parent.children
+        .map(child => ({ ...child, count: projects.filter(item => itemInCategories(item, [child.slug])).length }))
+        .filter(child => child.count > 0),
+    }))
+    .filter(parent => parent.count > 0);
 
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Badge className="border-violet-200 bg-violet-50 text-violet-700">BROWSE BY CATEGORY</Badge>
@@ -374,40 +342,128 @@ function CategoriesPage() {
       <h1 className="text-5xl font-extrabold tracking-[-.055em] lg:text-6xl">カテゴリから<br/>OSSを探す。</h1>
       <p className="text-sm leading-7 text-zinc-500">用途が決まっているなら、SaaS名よりカテゴリから探す方が早いことがあります。公開済みの候補だけを表示します。</p>
     </div>
-    <div className="mt-10 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {groups.map(([category, rows]) => <DiscoveryCard key={category} title={category} description={`${category}領域のOSS候補を比較`} count={rows.length} to={`/categories/${encodeURIComponent(category)}`}/>)}
+    <div className="mt-12 space-y-12">
+      {tree.map(parent => <div key={parent.slug}>
+        <div className="flex items-end justify-between gap-4 border-b border-zinc-200 pb-3">
+          <h2 className="text-2xl font-bold tracking-tight">{parent.name_ja}</h2>
+          <Link to={`/categories/${parent.slug}`} className="text-sm font-medium text-violet-600">{parent.count}件すべて見る →</Link>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {parent.children.map(child => <DiscoveryCard key={child.slug} title={child.name_ja} description={child.description_ja || `${child.name_ja}領域のOSS候補を比較`} count={child.count} to={`/categories/${child.slug}`}/>)}
+        </div>
+      </div>)}
     </div>
   </section>;
 }
 
 function CategoryPage() {
-  const { slug } = useParams();
-  const items = useDirectoryItems();
-  const category = decodeURIComponent(slug || "");
-  const rows = items.filter(i => i.category === category);
-  usePageMeta(`${category || "カテゴリ"}のOSS | ossalt`, `${category || "このカテゴリ"}で公開・レビュー済みのOSS代替候補を比較できます。`, `/categories/${encodeURIComponent(category)}`);
+  const { slug = "" } = useParams();
+  const { items, categories } = useSiteData();
+  const category = categories.find(c => c.slug === slug);
+  // Old category URLs used the percent-encoded Japanese name instead of a slug.
+  const legacy = category ? undefined : categories.find(c => c.name_ja === slug);
+  const parent = category?.parent_id ? categories.find(c => c.id === category.parent_id) : undefined;
+  const children = category ? categories.filter(c => c.parent_id === category.id) : [];
+  const rows = category ? uniqueByProject(items.filter(item => itemInCategories(item, categoryScope(category, categories)))) : [];
+  usePageMeta(
+    `${category?.name_ja || "カテゴリ"}のOSS | ossalt`,
+    category ? `${category.name_ja}で公開・レビュー済みのOSS代替候補${rows.length}件を、移行難易度・ライセンス・運用負担で比較できます。` : "カテゴリ別のOSS代替候補。",
+    `/categories/${slug}`,
+  );
+
+  if (legacy) return <Navigate to={`/categories/${legacy.slug}`} replace/>;
+  if (!category) return <NotFoundPage/>;
 
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
-    <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/categories"><ArrowLeft size={14}/> カテゴリ一覧</Link>
+    <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to={parent ? `/categories/${parent.slug}` : "/categories"}><ArrowLeft size={14}/> {parent ? parent.name_ja : "カテゴリ一覧"}</Link>
     <div className="mt-8 border-b border-zinc-200 pb-8">
       <Badge>{rows.length} PROJECTS</Badge>
-      <h1 className="mt-4 text-5xl font-extrabold tracking-[-.055em]">{category}</h1>
-      <p className="mt-4 text-sm leading-7 text-zinc-500">このカテゴリで公開・レビュー済みのOSS候補です。</p>
+      <h1 className="mt-4 text-5xl font-extrabold tracking-[-.055em]">{category.name_ja}</h1>
+      <p className="mt-4 text-sm leading-7 text-zinc-500">{category.description_ja || "このカテゴリで公開・レビュー済みのOSS候補です。"}</p>
+      {children.length > 0 && <div className="mt-5 flex flex-wrap gap-2">
+        {children.filter(child => items.some(item => itemInCategories(item, [child.slug]))).map(child => <Link key={child.slug} to={`/categories/${child.slug}`} className="rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm text-zinc-600 hover:border-violet-300 hover:text-violet-700">{child.name_ja}</Link>)}
+      </div>}
     </div>
     <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
   </section>;
 }
 
+function LicensesPage() {
+  usePageMeta("ライセンス別OSS一覧 | ossalt", "MIT・AGPLなどライセンス別に、OSS代替候補と利用条件の違いを確認できます。", "/licenses");
+  const { items, licenses } = useSiteData();
+  const projects = uniqueByProject(items);
+  const withCounts = licenses
+    .map(license => ({ license, count: projects.filter(item => item.license_slug === license.slug).length }))
+    .filter(row => row.count > 0)
+    .sort((a, b) => b.count - a.count);
+
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Badge className="border-violet-200 bg-violet-50 text-violet-700">BROWSE BY LICENSE</Badge>
+    <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_.7fr] lg:items-end">
+      <h1 className="text-5xl font-extrabold tracking-[-.055em] lg:text-6xl">ライセンスから<br/>OSSを探す。</h1>
+      <p className="text-sm leading-7 text-zinc-500">「ソースが公開されている」ことと「OSSである」ことは別です。社内利用や改変・再配布の条件はライセンスで変わります。</p>
+    </div>
+    {(["osi", "source_available"] as const).map(kind => {
+      const rows = withCounts.filter(row => row.license.kind === kind);
+      if (rows.length === 0) return null;
+      return <div key={kind} className="mt-12">
+        <h2 className="border-b border-zinc-200 pb-3 text-2xl font-bold tracking-tight">{LICENSE_KIND_LABEL[kind]}</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          {rows.map(({ license, count }) => <DiscoveryCard key={license.slug} title={license.name} description={license.copyleft ? COPYLEFT_LABEL[license.copyleft] : "利用条件に制限あり"} count={count} to={`/licenses/${license.slug}`}/>)}
+        </div>
+      </div>;
+    })}
+  </section>;
+}
+
+function LicensePage() {
+  const { slug = "" } = useParams();
+  const { items, licenses } = useSiteData();
+  const license = licenses.find(l => l.slug === slug);
+  const rows = license ? uniqueByProject(items.filter(item => item.license_slug === license.slug)) : [];
+  usePageMeta(
+    `${license?.name || "ライセンス"}のOSS | ossalt`,
+    license ? `${license.name}のOSS代替候補${rows.length}件と、ライセンスの利用条件の概要。` : "ライセンス別のOSS代替候補。",
+    `/licenses/${slug}`,
+  );
+  if (!license) return <NotFoundPage/>;
+
+  return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
+    <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/licenses"><ArrowLeft size={14}/> ライセンス一覧</Link>
+    <div className="mt-8 grid gap-6 border-b border-zinc-200 pb-8 lg:grid-cols-[1fr_.9fr]">
+      <div>
+        <div className="flex flex-wrap gap-2"><LicenseKindBadge license={license}/><Badge>{rows.length} PROJECTS</Badge></div>
+        <h1 className="mt-4 text-5xl font-extrabold tracking-[-.055em]">{license.name}</h1>
+      </div>
+      <Card><CardContent className="space-y-3 text-sm leading-7 text-zinc-600">
+        <p>{license.summary_ja}</p>
+        {license.copyleft && <p className="text-xs text-zinc-500">分類：{COPYLEFT_LABEL[license.copyleft]}</p>}
+        <p className="text-xs text-zinc-400">概要であり法的助言ではありません。実際の利用条件は{license.reference_url ? <a className="underline" href={license.reference_url} target="_blank" rel="noreferrer">ライセンス原文</a> : "ライセンス原文"}と各プロジェクトの表記を確認してください。</p>
+      </CardContent></Card>
+    </div>
+    <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map(item => <DirectoryCard key={item.relation_id} item={item}/>)}</div>
+  </section>;
+}
+
+function LicenseKindBadge({ license }: { license: Pick<License, "kind"> }) {
+  return license.kind === "osi"
+    ? <Badge className="border-emerald-200 bg-emerald-50 text-emerald-700">{LICENSE_KIND_LABEL.osi}</Badge>
+    : <Badge className="border-amber-200 bg-amber-50 text-amber-800">{LICENSE_KIND_LABEL.source_available}</Badge>;
+}
+
 const collectionDefinitions = {
-  "self-hosted": { title: "セルフホスト", description: "自社環境で運用できるOSS", test: (i: DirectoryItem) => !!i.docker_available },
-  active: { title: "活発に開発中", description: "45日以内にコミットが確認できるOSS", test: (i: DirectoryItem) => !!i.last_commit_at && Date.now() - new Date(i.last_commit_at).getTime() < 1000*60*60*24*45 },
-  latest: { title: "最近更新", description: "120日以内に更新が確認できるOSS", test: (i: DirectoryItem) => !!i.last_commit_at && Date.now() - new Date(i.last_commit_at).getTime() < 1000*60*60*24*120 },
-  easy: { title: "移行しやすい", description: "移行難易度2以下の候補", test: (i: DirectoryItem) => (i.migration_difficulty ?? 9) <= 2 },
+  "self-hosted": { title: "セルフホスト", description: "自社環境で運用できるOSS", test: (i: DirectoryItem, _now: number) => !!i.docker_available },
+  active: { title: "活発に開発中", description: "45日以内にコミットが確認できるOSS", test: (i: DirectoryItem, now: number) => isActiveWithin(i, now, 45) },
+  latest: { title: "最近更新", description: "120日以内に更新が確認できるOSS", test: (i: DirectoryItem, now: number) => isActiveWithin(i, now, 120) },
+  easy: { title: "移行しやすい", description: "移行難易度2以下の候補", test: (i: DirectoryItem, _now: number) => (i.migration_difficulty ?? 9) <= 2 },
 } as const;
+
+export const collectionKeys = Object.keys(collectionDefinitions);
 
 function CollectionsPage() {
   usePageMeta("OSSコレクション | ossalt", "セルフホスト、更新が活発、移行しやすいなどの条件からOSSを探せます。", "/collections");
   const items = useDirectoryItems();
+  const now = useReferenceNow();
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Badge className="border-violet-200 bg-violet-50 text-violet-700">CURATED COLLECTIONS</Badge>
     <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_.7fr] lg:items-end">
@@ -416,7 +472,7 @@ function CollectionsPage() {
     </div>
     <div className="mt-10 grid gap-3 md:grid-cols-2">
       {Object.entries(collectionDefinitions).map(([key, def]) => {
-        const count = items.filter(def.test).length;
+        const count = items.filter(item => def.test(item, now)).length;
         return <DiscoveryCard key={key} title={def.title} description={def.description} count={count} to={`/collections/${key}`}/>;
       })}
     </div>
@@ -426,10 +482,11 @@ function CollectionsPage() {
 function CollectionPage() {
   const { key } = useParams();
   const items = useDirectoryItems();
+  const now = useReferenceNow();
   const def = key ? collectionDefinitions[key as keyof typeof collectionDefinitions] : undefined;
+  usePageMeta(`${def?.title || "コレクション"}のOSS | ossalt`, def?.description || "条件別のOSS代替候補。", `/collections/${key || ""}`);
   if (!def) return <Navigate to="/collections" replace/>;
-  const rows = items.filter(def.test);
-  usePageMeta(`${def.title}のOSS | ossalt`, def.description, `/collections/${key}`);
+  const rows = items.filter(item => def.test(item, now));
 
   return <section className="mx-auto max-w-7xl px-5 py-14 lg:px-8">
     <Link className="inline-flex items-center gap-1 text-sm text-zinc-500" to="/collections"><ArrowLeft size={14}/> コレクション一覧</Link>
@@ -442,9 +499,10 @@ function CollectionPage() {
   </section>;
 }
 
-function repositoryAge(value?: string | null) {
-  if (!value) return "要確認";
-  const years = Math.max(0, (Date.now() - new Date(value).getTime()) / (1000 * 60 * 60 * 24 * 365.25));
+function repositoryAge(value: string | null | undefined, now: number) {
+  const days = daysSince(value, now);
+  if (days === null) return "要確認";
+  const years = days / 365.25;
   if (years < 1) return `${Math.max(1, Math.round(years * 12))}か月`;
   return `${years.toFixed(1)}年`;
 }
@@ -459,19 +517,23 @@ function ScoreRow({ label, value }: { label: string; value: number }) {
 function ProjectPage() {
   const { slug } = useParams();
   const items = useDirectoryItems();
+  const now = useReferenceNow();
   const relations = items.filter(i => i.project_slug === slug);
   const item = relations[0];
   const profile = slug ? projectProfiles[slug] : undefined;
+  usePageMeta(
+    item ? `${item.project_name} — OSS詳細 | ossalt` : "OSS詳細 | ossalt",
+    (item && (profile?.summary || item.short_description_ja)) || `${item?.project_name ?? "OSS"}のOSS詳細と移行情報。`,
+    `/projects/${slug || ""}`,
+  );
 
   if (!item) return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p>このOSSページは準備中です。</p><Button asChild className="mt-5"><Link to="/">トップへ戻る</Link></Button></section>;
 
   const operational = profile?.operations ?? { setup: 3, updates: 3, backups: 3, monitoring: 3 };
   const relatedProducts = Array.from(new Map(relations.map(r => [r.product_slug, r])).values());
-  usePageMeta(`${item.project_name} — OSS詳細 | ossalt`, profile?.summary || item.short_description_ja || `${item.project_name}のOSS詳細と移行情報。`, `/projects/${item.project_slug}`);
+  const ownCategories = item.category_slugs?.length ? item.category_slugs : item.category_slug ? [item.category_slug] : [];
 
-  const similarProjects = items
-    .filter(i => i.project_slug !== item.project_slug && i.category === item.category)
-    .filter((row, index, all) => all.findIndex(x => x.project_slug === row.project_slug) === index)
+  const similarProjects = uniqueByProject(items.filter(i => i.project_slug !== item.project_slug && itemInCategories(i, ownCategories)))
     .sort((a,b) => (b.stars_count ?? 0) - (a.stars_count ?? 0))
     .slice(0, 3);
 
@@ -484,7 +546,7 @@ function ProjectPage() {
           <div className="flex items-start gap-4">
             <ProjectMark item={item}/>
             <div>
-              <div className="flex flex-wrap items-center gap-2"><Badge>{item.category || "OSS"}</Badge><TrustMark item={item}/></div>
+              <div className="flex flex-wrap items-center gap-2">{item.category_slug ? <Link to={`/categories/${item.category_slug}`}><Badge className="hover:border-violet-300 hover:text-violet-700">{item.category}</Badge></Link> : <Badge>{item.category || "OSS"}</Badge>}<TrustMark item={item}/></div>
               <h1 className="mt-3 text-5xl font-extrabold tracking-[-0.055em] lg:text-7xl">{item.project_name}</h1>
             </div>
           </div>
@@ -514,16 +576,16 @@ function ProjectPage() {
             <p className="mt-3 text-sm leading-7 text-zinc-300">{profile?.operationsNote || item.migration_summary_ja || "機能だけでなく、運用負担と移行コストまで確認して判断してください。"}</p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.docker_available ? "Self-hosted" : "Hosting要確認"}</Badge>
-              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.license_spdx || "License要確認"}</Badge>
-              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.last_commit_at ? relativeDate(item.last_commit_at) : "更新日要確認"}</Badge>
+              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.license_spdx || "License要確認"}{item.license_kind === "source_available" && "（OSSではない）"}</Badge>
+              <Badge className="border-zinc-700 bg-zinc-900 text-zinc-200">{item.last_commit_at ? relativeDate(item.last_commit_at, now) : "更新日要確認"}</Badge>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Data freshness</p><h2 className="mt-2 text-xl font-bold">情報の鮮度</h2></CardHeader>
           <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between gap-4"><span className="text-zinc-500">GitHub snapshot</span><b>{item.snapshot_observed_at ? relativeDate(item.snapshot_observed_at) : "未取得"}</b></div>
-            <div className="flex justify-between gap-4"><span className="text-zinc-500">公式情報確認</span><b>{item.source_checked_at ? relativeDate(item.source_checked_at) : "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">GitHub snapshot</span><b>{item.snapshot_observed_at ? relativeDate(item.snapshot_observed_at, now) : "未取得"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">公式情報確認</span><b>{item.source_checked_at ? relativeDate(item.source_checked_at, now) : "要確認"}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">レビュー状態</span><b>{item.verification_state === "verified" ? "確認済み" : "要確認"}</b></div>
           </CardContent>
         </Card>
@@ -533,8 +595,8 @@ function ProjectPage() {
         <Card><CardContent><p className="text-xs text-zinc-400">Stars</p><p className="mt-2 text-2xl font-bold">{item.stars_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Forks</p><p className="mt-2 text-2xl font-bold">{item.forks_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Open issues</p><p className="mt-2 text-2xl font-bold">{item.open_issues_count?.toLocaleString() ?? "—"}</p></CardContent></Card>
-        <Card><CardContent><p className="text-xs text-zinc-400">Last commit</p><p className="mt-2 text-lg font-bold">{relativeDate(item.last_commit_at)}</p></CardContent></Card>
-        <Card><CardContent><p className="text-xs text-zinc-400">Repository age</p><p className="mt-2 text-lg font-bold">{repositoryAge(item.repository_created_at)}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Last commit</p><p className="mt-2 text-lg font-bold">{relativeDate(item.last_commit_at, now)}</p></CardContent></Card>
+        <Card><CardContent><p className="text-xs text-zinc-400">Repository age</p><p className="mt-2 text-lg font-bold">{repositoryAge(item.repository_created_at, now)}</p></CardContent></Card>
         <Card><CardContent><p className="text-xs text-zinc-400">Latest release</p><p className="mt-2 truncate text-lg font-bold">{item.latest_release_tag || "要確認"}</p></CardContent></Card>
       </div>
 
@@ -548,10 +610,10 @@ function ProjectPage() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex justify-between gap-4"><span className="text-zinc-500">主要言語</span><b>{item.primary_language || "要確認"}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">セルフホスト</span><b>{item.docker_available ? "対応" : "要確認"}</b></div>
-            <div className="flex justify-between gap-4"><span className="text-zinc-500">ライセンス</span><b>{item.license_spdx || "要確認"}</b></div>
-            <div className="flex justify-between gap-4"><span className="text-zinc-500">Repository age</span><b>{repositoryAge(item.repository_created_at)}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">ライセンス</span><b className="text-right">{item.license_slug ? <Link className="hover:text-violet-700" to={`/licenses/${item.license_slug}`}>{item.license_name || item.license_spdx}</Link> : item.license_spdx || "要確認"}{item.license_kind === "source_available" && <span className="block text-xs font-normal text-amber-700">OSI承認のOSSではありません</span>}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">Repository age</span><b>{repositoryAge(item.repository_created_at, now)}</b></div>
             <div className="flex justify-between gap-4"><span className="text-zinc-500">最新リリース</span><b>{item.latest_release_tag || "要確認"}</b></div>
-            <div className="flex justify-between gap-4"><span className="text-zinc-500">開発状況</span><b className={item.last_commit_at && Date.now() - new Date(item.last_commit_at).getTime() < 1000*60*60*24*45 ? "text-emerald-600" : ""}>{item.last_commit_at ? relativeDate(item.last_commit_at) : "要確認"}</b></div>
+            <div className="flex justify-between gap-4"><span className="text-zinc-500">開発状況</span><b className={isActiveWithin(item, now, 45) ? "text-emerald-600" : ""}>{item.last_commit_at ? relativeDate(item.last_commit_at, now) : "要確認"}</b></div>
             {item.topics?.length ? <div className="pt-2"><span className="text-zinc-500">Topics</span><div className="mt-2 flex flex-wrap gap-2">{item.topics.slice(0,8).map(topic => <Badge key={topic}>{topic}</Badge>)}</div></div> : null}
           </CardContent>
         </Card>
@@ -646,7 +708,7 @@ function AlternativesPage() {
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white">
         <div className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] bg-zinc-50 px-4 py-3 text-[10px] uppercase tracking-wider text-zinc-400"><span>候補</span><span>難易度</span><span>ライセンス</span><span>セルフホスト</span></div>
-        {candidates.map(item => <Link to={`/projects/${item.project_slug}`} key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm transition hover:bg-violet-50/50"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></Link>)}
+        {candidates.map(item => <Link to={`/projects/${item.project_slug}`} key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm transition hover:bg-violet-50/50"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span><LicenseValue item={item}/></span><span>{item.docker_available ? "対応" : "要確認"}</span></Link>)}
       </div>
 
       <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Fragment key={item.relation_id}>
@@ -791,15 +853,17 @@ function EditorialPolicyPage() {
 }
 
 function NotFoundPage() {
-  usePageMeta("ページが見つかりません | ossalt", "指定されたページは見つかりませんでした。", window.location.pathname);
+  const { pathname } = useLocation();
+  usePageMeta("ページが見つかりません | ossalt", "指定されたページは見つかりませんでした。", pathname);
   return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p className="text-sm text-zinc-500">404</p><h1 className="mt-3 text-4xl font-bold">ページが見つかりません</h1><Button asChild className="mt-6"><Link to="/">トップへ戻る</Link></Button></section>;
 }
 
 function Footer() {
-  return <footer className="border-t border-zinc-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-5 py-10 text-sm text-zinc-500 md:flex-row lg:px-8"><div><div className="font-bold text-zinc-950">ossalt</div><p className="mt-2">SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div><div className="flex flex-col gap-3 md:items-end"><div className="flex flex-wrap gap-4"><Link to="/about">ossaltについて</Link><Link to="/editorial-policy">掲載・編集方針</Link><Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link></div><a className="inline-flex items-center gap-1 text-violet-600" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">GitHubで修正提案 <ArrowUpRight size={13}/></a></div></div></footer>;
+  return <footer className="border-t border-zinc-200 bg-white"><div className="mx-auto flex max-w-7xl flex-col justify-between gap-6 px-5 py-10 text-sm text-zinc-500 md:flex-row lg:px-8"><div><div className="font-bold text-zinc-950">ossalt</div><p className="mt-2">SaaSからOSSへの移行を、日本語で比較・判断するためのディレクトリ。</p></div><div className="flex flex-col gap-3 md:items-end"><div className="flex flex-wrap gap-4"><Link to="/about">ossaltについて</Link><Link to="/editorial-policy">掲載・編集方針</Link><Link to="/categories">カテゴリ</Link><Link to="/collections">コレクション</Link><Link to="/licenses">ライセンス</Link></div><a className="inline-flex items-center gap-1 text-violet-600" href="https://github.com/noriyuki1113/ossalt-next" target="_blank" rel="noreferrer">GitHubで修正提案 <ArrowUpRight size={13}/></a></div></div></footer>;
 }
 
-function Site() {
-  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/guides/:productSlug/:projectSlug" element={<GuidePage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="/about" element={<AboutPage/>}/><Route path="/editorial-policy" element={<EditorialPolicyPage/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></main><Footer/></div>;
+// Router and data providers are supplied by the entry point (src/main.tsx in the browser,
+// src/entry-server.tsx when prerendering).
+export function Site() {
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/guides/:productSlug/:projectSlug" element={<GuidePage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/licenses" element={<LicensesPage/>}/><Route path="/licenses/:slug" element={<LicensePage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="/about" element={<AboutPage/>}/><Route path="/editorial-policy" element={<EditorialPolicyPage/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></main><Footer/></div>;
 }
-export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }

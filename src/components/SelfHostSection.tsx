@@ -1,47 +1,18 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { ArrowUpRight, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { SELFHOST_METHOD_LABEL, parseSelfhostSteps, useSelfhostGuides, type GuideWithProvider } from "@/lib/selfhost";
+import { useJsonLd } from "@/lib/head";
+import { SELFHOST_METHOD_LABEL, parseSelfhostSteps, useSelfhostGuides } from "@/lib/selfhost";
+import type { ToolSelfhostGuide } from "@/lib/types";
 
-function useHowToJsonLd(toolName: string, guides: GuideWithProvider[]) {
-  useEffect(() => {
-    const scriptId = "selfhost-howto-jsonld";
-    if (guides.length === 0) {
-      document.getElementById(scriptId)?.remove();
-      return;
-    }
-
-    const graph = guides.map(guide => ({
-      "@type": "HowTo",
-      name: `${toolName}を${guide.provider.name}で動かす（${SELFHOST_METHOD_LABEL[guide.method] ?? guide.method}）`,
-      step: parseSelfhostSteps(guide.steps_md).map((text, index) => ({
-        "@type": "HowToStep",
-        position: index + 1,
-        text,
-      })),
-    }));
-
-    let script = document.getElementById(scriptId) as HTMLScriptElement | null;
-    if (!script) {
-      script = document.createElement("script");
-      script.id = scriptId;
-      script.type = "application/ld+json";
-      document.head.appendChild(script);
-    }
-    script.textContent = JSON.stringify({ "@context": "https://schema.org", "@graph": graph });
-
-    return () => {
-      document.getElementById(scriptId)?.remove();
-    };
-  }, [toolName, guides]);
-}
-
-function GuideCard({ toolId, guide }: { toolId: string; guide: GuideWithProvider }) {
+function GuideCard({ toolId, guide }: { toolId: string; guide: ToolSelfhostGuide }) {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
   const steps = parseSelfhostSteps(guide.steps_md);
-  const outboundHref = `/api/out?p=${encodeURIComponent(guide.provider.slug)}&t=${encodeURIComponent(toolId)}&from=${encodeURIComponent(typeof window !== "undefined" ? window.location.pathname : "")}`;
+  const outboundHref = `/api/out?p=${encodeURIComponent(guide.provider.slug)}&t=${encodeURIComponent(toolId)}&from=${encodeURIComponent(pathname)}`;
 
   return (
     <Card>
@@ -95,9 +66,21 @@ function GuideCard({ toolId, guide }: { toolId: string; guide: GuideWithProvider
 
 export function SelfHostSection({ toolId, toolName }: { toolId: string; toolName: string }) {
   const guides = useSelfhostGuides(toolId);
-  useHowToJsonLd(toolName, guides ?? []);
+  useJsonLd(
+    `selfhost-howto-${toolId}`,
+    guides.length === 0
+      ? null
+      : {
+          "@context": "https://schema.org",
+          "@graph": guides.map(guide => ({
+            "@type": "HowTo",
+            name: `${toolName}を${guide.provider.name}で動かす（${SELFHOST_METHOD_LABEL[guide.method] ?? guide.method}）`,
+            step: parseSelfhostSteps(guide.steps_md).map((text, index) => ({ "@type": "HowToStep", position: index + 1, text })),
+          })),
+        },
+  );
 
-  if (!guides || guides.length === 0) return null;
+  if (guides.length === 0) return null;
 
   return (
     <section id="selfhost" className="mt-8 scroll-mt-32">

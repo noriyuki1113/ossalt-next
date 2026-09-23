@@ -1,5 +1,8 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "cleanUrls": true,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    { "source": "/(.*)", "destination": "/spa.html" }
   ]
 }

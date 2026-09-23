@@ -13,6 +13,11 @@ export type DirectoryItem = {
   project_name_ja: string | null;
   short_description_ja: string | null;
   category: string | null;
+  category_slug?: string | null;
+  category_slugs?: string[] | null;
+  license_slug?: string | null;
+  license_name?: string | null;
+  license_kind?: LicenseKind | null;
   official_url: string | null;
   repository_url: string | null;
   license_spdx: string | null;
@@ -35,6 +40,27 @@ export type DirectoryItem = {
   topics?: string[] | null;
   last_commit_at: string | null;
   snapshot_observed_at: string | null;
+};
+
+export type LicenseKind = "osi" | "source_available";
+
+export type Category = {
+  id: string;
+  slug: string;
+  name_ja: string;
+  parent_id: string | null;
+  sort_order: number;
+  description_ja: string | null;
+};
+
+export type License = {
+  slug: string;
+  identifier: string;
+  name: string;
+  kind: LicenseKind;
+  copyleft: "none" | "weak" | "strong" | "network" | null;
+  summary_ja: string;
+  reference_url: string | null;
 };
 
 export type SelfhostMethod = "startup_script" | "docker_compose" | "manual";
