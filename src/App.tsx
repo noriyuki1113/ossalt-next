@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, CircleDot, Clock3, GitFork, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { fallbackItems } from "@/lib/fallback-data";
 import { productGuides } from "@/lib/product-guides";
 import { projectProfiles } from "@/lib/project-profiles";
+import { SelfHostSection } from "@/components/SelfHostSection";
 import type { DirectoryItem } from "@/lib/types";
 
 const SITE_URL = "https://ossalt-next.vercel.app";
@@ -600,6 +601,8 @@ function ProjectPage() {
         </Card>
       </div>
 
+      <SelfHostSection toolId={item.project_id} toolName={item.project_name}/>
+
       <div id="alternatives" className="mt-10 scroll-mt-32">
         <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Alternative to</p><h2 className="mt-2 text-3xl font-bold">代替できるSaaS</h2></div></div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -645,11 +648,14 @@ function AlternativesPage() {
         {candidates.map(item => <Link to={`/projects/${item.project_slug}`} key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm transition hover:bg-violet-50/50"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></Link>)}
       </div>
 
-      <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Card key={item.relation_id}>
-        <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><Link to={`/projects/${item.project_slug}`} className="mt-1 inline-flex items-center gap-2 text-3xl font-bold hover:text-violet-600">{item.project_name}<ArrowUpRight size={18}/></Link><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
-        <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
-        <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}</CardFooter>
-      </Card>)}</div>
+      <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Fragment key={item.relation_id}>
+        <Card>
+          <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><Link to={`/projects/${item.project_slug}`} className="mt-1 inline-flex items-center gap-2 text-3xl font-bold hover:text-violet-600">{item.project_name}<ArrowUpRight size={18}/></Link><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
+          <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
+          <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}</CardFooter>
+        </Card>
+        <SelfHostSection toolId={item.project_id} toolName={item.project_name}/>
+      </Fragment>)}</div>
 
       {guide && <><div className="mt-8 grid gap-4 md:grid-cols-2"><Card><CardHeader><h2 className="text-2xl font-bold">移行で失う可能性があるもの</h2></CardHeader><CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{guide.risks.map(r => <li key={r}>• {r}</li>)}</ul></CardContent></Card><Card><CardHeader><h2 className="text-2xl font-bold">移行の進め方</h2></CardHeader><CardContent><ol className="space-y-3">{guide.steps.map((s,i) => <li key={s} className="flex gap-3 text-sm text-zinc-600"><span className="text-violet-600">{String(i+1).padStart(2,"0")}</span>{s}</li>)}</ol></CardContent></Card></div>
       <div className="mt-10"><h2 className="text-3xl font-bold">よくある質問</h2><div className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200">{guide.faq.map(f => <details key={f.q} className="bg-white px-1 py-4"><summary className="cursor-pointer font-semibold">{f.q}</summary><p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">{f.a}</p></details>)}</div></div></>}

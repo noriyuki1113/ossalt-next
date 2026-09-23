@@ -32,3 +32,29 @@ export type DirectoryItem = {
   last_commit_at: string | null;
   snapshot_observed_at: string | null;
 };
+
+export type SelfhostMethod = "startup_script" | "docker_compose" | "manual";
+
+export type VpsProvider = {
+  id: string;
+  slug: string;
+  name: string;
+  affiliate_url: string | null;
+  official_url: string;
+  min_monthly_jpy: number;
+  pricing_checked_at: string;
+  is_active: boolean;
+};
+
+export type ToolSelfhostGuide = {
+  id: string;
+  tool_id: string;
+  provider_id: string;
+  method: SelfhostMethod;
+  recommended_memory_gb: number;
+  steps_md: string;
+  source_url: string;
+  verified_at: string;
+  status: "draft" | "published";
+  provider: VpsProvider;
+};
