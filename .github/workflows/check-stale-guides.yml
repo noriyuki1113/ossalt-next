@@ -1,0 +1,54 @@
+name: Check stale self-host guides
+
+# There was no existing weekly workflow to extend (the others are daily/on-demand), so
+# this is a new one, scoped only to this check.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1" # every Monday 00:00 UTC (09:00 JST)
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm install
+
+      - name: Run stale guide check
+        run: npm run check:stale-guides | tee stale-guides-report.txt
+        env:
+          SUPABASE_URL: https://acakchddmmuylifrgkbv.supabase.co
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Extract stale count
+        id: count
+        run: echo "count=$(grep -o 'STALE_COUNT=[0-9]*' stale-guides-report.txt | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+
+      - name: Email notification via Resend
+        if: steps.count.outputs.count != '0' && steps.count.outputs.count != ''
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+        run: |
+          body_json=$(jq -Rs '.' < stale-guides-report.txt)
+          payload=$(jq -n \
+            --arg from "$ALERT_EMAIL_FROM" \
+            --arg to "$ALERT_EMAIL_TO" \
+            --arg subject "ossalt: stale self-host guide(s) found" \
+            --argjson text "$body_json" \
+            '{from: $from, to: [$to], subject: $subject, text: $text}')
+          curl -fsS -X POST https://api.resend.com/emails \
+            -H "Authorization: Bearer $RESEND_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

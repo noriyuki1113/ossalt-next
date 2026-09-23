@@ -11,7 +11,8 @@
     "review:candidate": "node scripts/review-import-candidate.mjs",
     "sync:github-snapshots": "node scripts/sync-github-snapshots.mjs",
     "generate:readme": "node scripts/generate-readme.mjs",
-    "generate:openalternative-catalog": "node scripts/generate-openalternative-catalog.mjs"
+    "generate:openalternative-catalog": "node scripts/generate-openalternative-catalog.mjs",
+    "check:stale-guides": "tsx scripts/check-stale-guides.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -32,6 +33,8 @@
     "vite": "^5.4.10",
     "tailwindcss": "^4.1.14",
     "@tailwindcss/vite": "^4.1.14",
-    "@types/node": "^22.10.2"
+    "@types/node": "^22.10.2",
+    "@vercel/node": "^3.2.24",
+    "tsx": "^4.19.2"
   }
 }

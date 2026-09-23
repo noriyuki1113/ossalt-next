@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { BrowserRouter, Link, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Activity, ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, CircleDot, Clock3, GitFork, Github, Menu, Search, ShieldCheck, SlidersHorizontal, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { supabase } from "@/lib/supabase";
 import { fallbackItems } from "@/lib/fallback-data";
 import { productGuides } from "@/lib/product-guides";
 import { projectProfiles } from "@/lib/project-profiles";
+import { SelfHostSection } from "@/components/SelfHostSection";
+import { SELFHOST_METHOD_LABEL, parseSelfhostSteps, useSelfhostGuides } from "@/lib/selfhost";
 import type { DirectoryItem } from "@/lib/types";
 
 const SITE_URL = "https://ossalt-next.vercel.app";
@@ -600,6 +602,8 @@ function ProjectPage() {
         </Card>
       </div>
 
+      <SelfHostSection toolId={item.project_id} toolName={item.project_name}/>
+
       <div id="alternatives" className="mt-10 scroll-mt-32">
         <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[.14em] text-violet-600">Alternative to</p><h2 className="mt-2 text-3xl font-bold">代替できるSaaS</h2></div></div>
         <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -645,14 +649,133 @@ function AlternativesPage() {
         {candidates.map(item => <Link to={`/projects/${item.project_slug}`} key={item.relation_id} className="grid grid-cols-[1.6fr_.7fr_.8fr_.8fr] items-center border-t border-zinc-100 px-4 py-4 text-sm transition hover:bg-violet-50/50"><div><b>{item.project_name}</b><p className="mt-1 truncate text-xs text-zinc-500">{item.short_description_ja}</p></div><span>{item.migration_difficulty ? `${item.migration_difficulty}/5` : "—"}</span><span>{item.license_spdx || "要確認"}</span><span>{item.docker_available ? "対応" : "要確認"}</span></Link>)}
       </div>
 
-      <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Card key={item.relation_id}>
-        <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><Link to={`/projects/${item.project_slug}`} className="mt-1 inline-flex items-center gap-2 text-3xl font-bold hover:text-violet-600">{item.project_name}<ArrowUpRight size={18}/></Link><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
-        <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
-        <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}</CardFooter>
-      </Card>)}</div>
+      <div className="mt-8 grid gap-4">{candidates.map((item,index) => <Fragment key={item.relation_id}>
+        <Card>
+          <CardHeader><div className="flex items-start justify-between gap-4"><div><p className="text-xs text-zinc-400">0{index+1}</p><Link to={`/projects/${item.project_slug}`} className="mt-1 inline-flex items-center gap-2 text-3xl font-bold hover:text-violet-600">{item.project_name}<ArrowUpRight size={18}/></Link><p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-600">{item.short_description_ja}</p></div><TrustMark item={item}/></div></CardHeader>
+          <CardContent><div className="grid gap-3 md:grid-cols-2"><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">向いているケース</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.strengths_ja?.map(x => <li key={x}>✓ {x}</li>)}</ul></div><div className="rounded-xl bg-zinc-50 p-4"><h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">確認が必要な点</h3><ul className="mt-3 space-y-2 text-sm text-zinc-600">{item.constraints_ja?.map(x => <li key={x}>! {x}</li>)}</ul></div></div>{item.migration_summary_ja && <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50/70 p-4"><p className="text-xs font-semibold uppercase tracking-wider text-violet-600">移行メモ</p><p className="mt-2 text-sm leading-7 text-zinc-600">{item.migration_summary_ja}</p></div>}</CardContent>
+          <CardFooter className="gap-2">{item.official_url && <Button asChild size="sm"><a href={item.official_url} target="_blank" rel="noreferrer">公式サイト <ArrowUpRight size={13}/></a></Button>}{item.repository_url && <Button asChild size="sm" variant="outline"><a href={item.repository_url} target="_blank" rel="noreferrer"><Github size={13}/> GitHub</a></Button>}<Button asChild size="sm" variant="ghost"><Link to={`/guides/${item.product_slug}/${item.project_slug}`}>国内VPSで動かす記事 <ArrowRight size={13}/></Link></Button></CardFooter>
+        </Card>
+        <SelfHostSection toolId={item.project_id} toolName={item.project_name}/>
+      </Fragment>)}</div>
 
       {guide && <><div className="mt-8 grid gap-4 md:grid-cols-2"><Card><CardHeader><h2 className="text-2xl font-bold">移行で失う可能性があるもの</h2></CardHeader><CardContent><ul className="space-y-3 text-sm leading-7 text-zinc-600">{guide.risks.map(r => <li key={r}>• {r}</li>)}</ul></CardContent></Card><Card><CardHeader><h2 className="text-2xl font-bold">移行の進め方</h2></CardHeader><CardContent><ol className="space-y-3">{guide.steps.map((s,i) => <li key={s} className="flex gap-3 text-sm text-zinc-600"><span className="text-violet-600">{String(i+1).padStart(2,"0")}</span>{s}</li>)}</ol></CardContent></Card></div>
       <div className="mt-10"><h2 className="text-3xl font-bold">よくある質問</h2><div className="mt-4 divide-y divide-zinc-200 border-y border-zinc-200">{guide.faq.map(f => <details key={f.q} className="bg-white px-1 py-4"><summary className="cursor-pointer font-semibold">{f.q}</summary><p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">{f.a}</p></details>)}</div></div></>}
+    </section>
+  );
+}
+
+function formatProductPricing(item: DirectoryItem) {
+  if (item.product_monthly_price_jpy == null) return `${item.product_name}の料金は要確認`;
+  const plan = item.product_plan_name ? `の${item.product_plan_name}` : "";
+  return (
+    <>
+      {item.product_name}{plan}は月{item.product_monthly_price_jpy.toLocaleString()}円
+      {item.product_pricing_checked_at && `（${item.product_pricing_checked_at}時点`}
+      {item.product_pricing_source_url && <> ・ <a className="underline" href={item.product_pricing_source_url} target="_blank" rel="noreferrer">出典</a></>}
+      {item.product_pricing_checked_at && "）"}
+    </>
+  );
+}
+
+function GuidePage() {
+  const { productSlug, projectSlug } = useParams();
+  const items = useDirectoryItems();
+  const item = items.find(i => i.product_slug === productSlug && i.project_slug === projectSlug);
+  const guide = productSlug ? productGuides[productSlug] : undefined;
+  const profile = projectSlug ? projectProfiles[projectSlug] : undefined;
+  const selfhostGuides = useSelfhostGuides(item?.project_id ?? "");
+
+  usePageMeta(
+    item ? `${item.product_name}の代わりに${item.project_name}を国内VPSで動かす | ossalt` : "国内VPSで動かす | ossalt",
+    item ? `${item.product_name}から${item.project_name}への移行と、国内VPSでのセルフホスト手順・料金をまとめました。` : "SaaSの代わりにOSSを国内VPSで動かす方法。",
+    `/guides/${productSlug || ""}/${projectSlug || ""}`,
+  );
+
+  if (!item) return <section className="mx-auto max-w-3xl px-5 py-28 text-center"><p>この記事は準備中です。</p><Button asChild className="mt-5"><Link to="/">トップへ戻る</Link></Button></section>;
+
+  const bestFeature = profile?.bestFor?.[0] || item.strengths_ja?.[0] || item.short_description_ja || `セルフホストで${item.project_name}を運用できます`;
+  const audience = item.strengths_ja?.[0] || profile?.bestFor?.[0] || "セルフホストを検討している方";
+  const cheapestGuide = selfhostGuides && selfhostGuides.length > 0 ? selfhostGuides[0] : null;
+  const methodGroups = selfhostGuides ? Array.from(new Map(selfhostGuides.map(g => [g.method, g])).entries()) : [];
+
+  return (
+    <section className="mx-auto max-w-3xl px-5 py-12 lg:px-8 lg:py-16">
+      <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-800">
+        この記事にはアフィリエイトリンクを含みます（PR）。
+      </p>
+
+      <Link className="mt-6 inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-950" to={`/alternatives/${item.product_slug}`}><ArrowLeft size={14}/> {item.product_name}の代替OSS一覧へ</Link>
+
+      <h1 className="mt-4 text-3xl font-extrabold tracking-tight lg:text-5xl">{item.product_name}の代わりに{item.project_name}を国内VPSで動かす</h1>
+
+      <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-violet-600">結論</p>
+        <ul className="mt-3 space-y-2 text-sm leading-7 text-zinc-700">
+          <li>{formatProductPricing(item)}</li>
+          <li>{item.project_name}なら国内VPSの{cheapestGuide ? `月${cheapestGuide.provider.min_monthly_jpy.toLocaleString()}円〜` : "月額は準備中"}で、{bestFeature}</li>
+          <li>向いている人：{audience}</li>
+        </ul>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold">{item.product_name}と{item.project_name}の違い</h2>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-200 bg-white text-sm">
+          <div className="grid grid-cols-3 border-b border-zinc-100 bg-zinc-50 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-zinc-400"><span>項目</span><span>{item.product_name}</span><span>{item.project_name}</span></div>
+          <div className="grid grid-cols-3 border-b border-zinc-100 px-4 py-3"><span className="text-zinc-500">料金</span><span>{item.product_monthly_price_jpy != null ? `月${item.product_monthly_price_jpy.toLocaleString()}円〜` : "要確認"}</span><span>{cheapestGuide ? `国内VPS 月${cheapestGuide.provider.min_monthly_jpy.toLocaleString()}円〜` : "要確認"}</span></div>
+          <div className="grid grid-cols-3 border-b border-zinc-100 px-4 py-3"><span className="text-zinc-500">データの保管場所</span><span>要確認</span><span>自分のVPS（国内）</span></div>
+          <div className="grid grid-cols-3 px-4 py-3"><span className="text-zinc-500">運用の手間</span><span>なし</span><span>アップデート・バックアップが必要</span></div>
+        </div>
+        <p className="mt-2 text-xs text-zinc-400">※ {item.project_name}側の注意点：{(item.constraints_ja && item.constraints_ja.length > 0) ? item.constraints_ja.join(" / ") : "要確認"}</p>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold">必要なスペック</h2>
+        <p className="mt-3 text-sm leading-7 text-zinc-600">
+          推奨メモリ：{cheapestGuide?.recommended_memory_gb != null ? `${cheapestGuide.recommended_memory_gb}GB（出典：` : "公式要件未記載"}
+          {cheapestGuide?.recommended_memory_gb != null && <a className="underline" href={cheapestGuide.source_url} target="_blank" rel="noreferrer">公式ドキュメント</a>}
+          {cheapestGuide?.recommended_memory_gb != null && "）"}
+        </p>
+      </div>
+
+      <div className="mt-10">
+        <h2 className="text-xl font-bold">手順</h2>
+        {methodGroups.length === 0 && <p className="mt-3 text-sm text-zinc-500">現在、VPS事業者ごとの手順は準備中です。</p>}
+        {methodGroups.map(([method, guideForMethod], index) => (
+          <div key={method} className="mt-4">
+            <h3 className="text-sm font-bold text-violet-600">方法{String.fromCharCode(65 + index)}：{SELFHOST_METHOD_LABEL[method] ?? method}（{guideForMethod.provider.name}）</h3>
+            <ol className="mt-2 space-y-2 border-l border-zinc-200 pl-4 text-sm leading-7 text-zinc-600">
+              {parseSelfhostSteps(guideForMethod.steps_md).map((step, i) => <li key={i}>{step}</li>)}
+            </ol>
+            <p className="mt-2 text-[11px] text-zinc-400">
+              手順確認日 {guideForMethod.verified_at} ・{" "}
+              <a className="underline" href={guideForMethod.source_url} target="_blank" rel="noreferrer">根拠情報</a>
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {guide && <div className="mt-10">
+        <h2 className="text-xl font-bold">移行のコツ（{item.product_name}からデータを持ってくる）</h2>
+        <ol className="mt-3 space-y-2 text-sm leading-7 text-zinc-600">{guide.steps.map((s, i) => <li key={s}><b className="text-violet-600">{String(i + 1).padStart(2, "0")}</b> {s}</li>)}</ol>
+        {guide.risks.length > 0 && <p className="mt-3 text-xs text-zinc-500">移行できない/同等でない可能性があるもの：{guide.risks.join(" / ")}</p>}
+      </div>}
+
+      {guide && guide.faq.length > 0 && <div className="mt-10">
+        <h2 className="text-xl font-bold">よくある質問</h2>
+        <div className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200">
+          {guide.faq.map(f => <details key={f.q} className="bg-white px-1 py-4"><summary className="cursor-pointer font-semibold">{f.q}</summary><p className="mt-3 text-sm leading-7 text-zinc-600">{f.a}</p></details>)}
+        </div>
+      </div>}
+
+      <div className="mt-10 rounded-2xl bg-zinc-950 p-6 text-white">
+        <h2 className="text-xl font-bold">まとめ</h2>
+        <p className="mt-2 text-sm leading-7 text-zinc-300">向いている人：{audience}</p>
+        <p className="mt-1 text-sm leading-7 text-zinc-300">向いていない人：{(item.constraints_ja && item.constraints_ja[0]) || profile?.avoidIf?.[0] || "要確認"}</p>
+      </div>
+
+      <p className="mt-8 text-xs text-zinc-400">
+        料金の最終確認日：{item.product_pricing_checked_at || "要確認"}／手順の確認日：{cheapestGuide?.verified_at || "要確認"}
+      </p>
     </section>
   );
 }
@@ -677,6 +800,6 @@ function Footer() {
 }
 
 function Site() {
-  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="/about" element={<AboutPage/>}/><Route path="/editorial-policy" element={<EditorialPolicyPage/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></main><Footer/></div>;
+  return <div className="min-h-screen bg-[#f7f7f5] text-zinc-950"><Header/><main><Routes><Route path="/" element={<HomePage/>}/><Route path="/alternatives/:slug" element={<AlternativesPage/>}/><Route path="/projects/:slug" element={<ProjectPage/>}/><Route path="/guides/:productSlug/:projectSlug" element={<GuidePage/>}/><Route path="/categories" element={<CategoriesPage/>}/><Route path="/categories/:slug" element={<CategoryPage/>}/><Route path="/collections" element={<CollectionsPage/>}/><Route path="/collections/:key" element={<CollectionPage/>}/><Route path="/about" element={<AboutPage/>}/><Route path="/editorial-policy" element={<EditorialPolicyPage/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></main><Footer/></div>;
 }
 export function App(){ return <BrowserRouter><Site/></BrowserRouter>; }
