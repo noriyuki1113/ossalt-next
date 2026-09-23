@@ -108,7 +108,7 @@ function GuideCard({ toolId, guide }: { toolId: string; guide: GuideWithProvider
               <h3 className="text-lg font-bold">{guide.provider.name}</h3>
               <Badge>{METHOD_LABEL[guide.method] ?? guide.method}</Badge>
             </div>
-            <p className="mt-1 text-sm text-zinc-500">推奨メモリ {guide.recommended_memory_gb}GB〜</p>
+            <p className="mt-1 text-sm text-zinc-500">推奨メモリ {guide.recommended_memory_gb != null ? `${guide.recommended_memory_gb}GB〜` : "公式要件未記載"}</p>
           </div>
           <div className="text-right">
             <p className="text-xl font-bold">月額{guide.provider.min_monthly_jpy.toLocaleString()}円〜</p>

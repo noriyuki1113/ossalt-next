@@ -24,7 +24,9 @@ create table public.tool_selfhost_guides (
   tool_id uuid not null references public.projects(id) on delete cascade,
   provider_id uuid not null references public.vps_providers(id) on delete cascade,
   method text not null check (method in ('startup_script', 'docker_compose', 'manual')),
-  recommended_memory_gb numeric(5, 1) not null check (recommended_memory_gb > 0),
+  -- Nullable: use null when the tool's official docs don't state a memory
+  -- requirement (steps_md should then say so explicitly, e.g. "公式要件未記載").
+  recommended_memory_gb numeric(5, 1) check (recommended_memory_gb is null or recommended_memory_gb > 0),
   steps_md text not null,
   source_url text not null,
   verified_at date not null,

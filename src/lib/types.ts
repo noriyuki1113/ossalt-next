@@ -51,7 +51,7 @@ export type ToolSelfhostGuide = {
   tool_id: string;
   provider_id: string;
   method: SelfhostMethod;
-  recommended_memory_gb: number;
+  recommended_memory_gb: number | null;
   steps_md: string;
   source_url: string;
   verified_at: string;
